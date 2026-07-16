@@ -18,6 +18,7 @@ If you do not have PostgreSQL installed, the backend includes an optional embedd
 ```bash
 cd backend
 npm install
+cp .env.example .env   # default credentials already match the embedded Postgres
 npm run db:embedded
 # keep this terminal open, then in another:
 npx prisma db push
