@@ -34,7 +34,13 @@ const checkboxQuestionSchema = baseQuestionSchema.extend({
 export const createQuizSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   questions: z
-    .array(z.discriminatedUnion('type', [booleanQuestionSchema, inputQuestionSchema, checkboxQuestionSchema]))
+    .array(
+      z.discriminatedUnion('type', [
+        booleanQuestionSchema,
+        inputQuestionSchema,
+        checkboxQuestionSchema,
+      ]),
+    )
     .min(1, 'At least one question is required'),
 });
 

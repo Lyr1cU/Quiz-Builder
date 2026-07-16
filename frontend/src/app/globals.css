@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --navy: #10131c;
@@ -41,8 +41,14 @@ body {
 
 .page-shell {
   min-height: 100vh;
-  background:
-    linear-gradient(135deg, var(--navy) 0%, #1a2030 28%, #3d4254 48%, #cfc6b6 68%, var(--cream) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--navy) 0%,
+    #1a2030 28%,
+    #3d4254 48%,
+    #cfc6b6 68%,
+    var(--cream) 100%
+  );
   background-attachment: fixed;
 }
 
@@ -78,7 +84,9 @@ body {
   padding: 0.85rem 1.25rem;
   color: var(--ink);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .field-input:focus {

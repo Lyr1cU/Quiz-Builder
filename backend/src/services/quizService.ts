@@ -15,10 +15,7 @@ export async function createQuiz(data: CreateQuizInput) {
             order: q.order ?? index,
             booleanAnswer: q.type === 'BOOLEAN' ? q.booleanAnswer : null,
             inputAnswer: q.type === 'INPUT' ? q.inputAnswer : null,
-            options:
-              q.type === 'CHECKBOX'
-                ? (q.options as Prisma.InputJsonValue)
-                : Prisma.JsonNull,
+            options: q.type === 'CHECKBOX' ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
           })),
         },
       },

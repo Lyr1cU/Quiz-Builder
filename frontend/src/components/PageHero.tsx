@@ -15,7 +15,9 @@ export function PageHero({ title, subtitle, light = false }: Props) {
         {title}
       </h1>
       {subtitle && (
-        <p className={`mt-2 text-sm sm:text-base ${light ? 'text-white/75' : 'text-[var(--muted)]'}`}>
+        <p
+          className={`mt-2 text-sm sm:text-base ${light ? 'text-white/75' : 'text-[var(--muted)]'}`}
+        >
           {subtitle}
         </p>
       )}
