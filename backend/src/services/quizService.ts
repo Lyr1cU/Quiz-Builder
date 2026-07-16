@@ -4,25 +4,24 @@ import { CreateQuizInput } from '../lib/validation';
 import { AppError } from '../middleware/errorHandler';
 
 export async function createQuiz(data: CreateQuizInput) {
-  return prisma.$transaction(async (tx) => {
-    return tx.quiz.create({
-      data: {
-        title: data.title,
-        questions: {
-          create: data.questions.map((q, index) => ({
-            type: q.type,
-            text: q.text,
-            order: q.order ?? index,
-            booleanAnswer: q.type === 'BOOLEAN' ? q.booleanAnswer : null,
-            inputAnswer: q.type === 'INPUT' ? q.inputAnswer : null,
-            options: q.type === 'CHECKBOX' ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
-          })),
-        },
+  // A single nested create is already atomic; no explicit transaction needed.
+  return prisma.quiz.create({
+    data: {
+      title: data.title,
+      questions: {
+        create: data.questions.map((q, index) => ({
+          type: q.type,
+          text: q.text,
+          order: q.order ?? index,
+          booleanAnswer: q.type === 'BOOLEAN' ? q.booleanAnswer : null,
+          inputAnswer: q.type === 'INPUT' ? q.inputAnswer : null,
+          options: q.type === 'CHECKBOX' ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
+        })),
       },
-      include: {
-        questions: { orderBy: { order: 'asc' } },
-      },
-    });
+    },
+    include: {
+      questions: { orderBy: { order: 'asc' } },
+    },
   });
 }
 
