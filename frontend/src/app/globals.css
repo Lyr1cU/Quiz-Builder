@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #10131c;
+  --navy-deep: #0c0e14;
+  --cream: #f4efe6;
+  --cream-soft: #faf7f2;
+  --ink: #1a1d27;
+  --muted: #6b6570;
+  --gold-from: #b8954a;
+  --gold-to: #8a6a32;
+  --teal: #1f5c57;
+  --teal-hover: #174a46;
+  --danger: #9b3a3a;
+  --card: #ffffff;
+  --line: #e8e2d8;
+  --background: var(--cream);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-navy: var(--navy);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-teal: var(--teal);
+  --color-danger: var(--danger);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+.page-shell {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, var(--navy) 0%, #1a2030 28%, #3d4254 48%, #cfc6b6 68%, var(--cream) 100%);
+  background-attachment: fixed;
+}
+
+.gold-btn {
+  background: linear-gradient(180deg, var(--gold-from), var(--gold-to));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(138, 106, 50, 0.28);
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.gold-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(138, 106, 50, 0.34);
+}
+
+.gold-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.gold-btn:disabled {
+  opacity: 0.55;
+}
+
+.field-input {
+  width: 100%;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0.85rem 1.25rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-input:focus {
+  border-color: var(--gold-from);
+  box-shadow: 0 0 0 3px rgba(184, 149, 74, 0.18);
+}
+
+.field-select {
+  width: 100%;
+  border-radius: 9999px;
+  border: 1.5px solid var(--gold-from);
+  background: #fff;
+  padding: 0.75rem 1.1rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.surface-card {
+  background: var(--card);
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 40px rgba(16, 19, 28, 0.08);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.surface-card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(16, 19, 28, 0.12);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fade-up 0.45s ease both;
+}
+
+.animate-in-delay-1 {
+  animation-delay: 0.06s;
+}
+
+.animate-in-delay-2 {
+  animation-delay: 0.12s;
+}
+
+.animate-in-delay-3 {
+  animation-delay: 0.18s;
+}
+
+.stagger-item {
+  animation: fade-up 0.4s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .stagger-item,
+  .surface-card,
+  .gold-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .surface-card-interactive:hover,
+  .gold-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}
