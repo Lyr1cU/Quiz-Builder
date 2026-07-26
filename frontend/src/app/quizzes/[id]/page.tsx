@@ -71,6 +71,11 @@ export default function QuizDetailPage() {
           <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             {quiz.title}
           </h1>
+          {quiz.description && (
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/75">
+              {quiz.description}
+            </p>
+          )}
           <p className="mt-2 text-sm text-white/70">
             {quiz.questions.length} question{quiz.questions.length === 1 ? '' : 's'} · read-only
           </p>

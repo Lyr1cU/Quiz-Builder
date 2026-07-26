@@ -64,6 +64,7 @@ const questionSchema = z
 
 const formSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
+  description: z.string().trim().max(500, 'Description must be 500 characters or less'),
   questions: z.array(questionSchema).min(1, 'Add at least one question'),
 });
 
@@ -83,8 +84,10 @@ function emptyQuestion(): FormValues['questions'][number] {
 }
 
 function toPayload(values: FormValues): CreateQuizInput {
+  const description = values.description.trim();
   return {
     title: values.title.trim(),
+    description: description || null,
     questions: values.questions.map((q, order) => {
       if (q.type === 'BOOLEAN') {
         return {
@@ -130,6 +133,7 @@ export function CreateQuizForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
+      description: '',
       questions: [emptyQuestion()],
     },
   });
@@ -171,6 +175,22 @@ export function CreateQuizForm() {
         />
         {errors.title && (
           <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.title.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="description" className="mb-2 block text-sm font-semibold text-white/90">
+          Description <span className="font-normal text-white/50">(optional)</span>
+        </label>
+        <textarea
+          id="description"
+          rows={3}
+          {...register('description')}
+          className="field-input !rounded-2xl"
+          placeholder="Brief overview of what this quiz covers"
+        />
+        {errors.description && (
+          <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.description.message}</p>
         )}
       </div>
 

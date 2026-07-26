@@ -19,6 +19,7 @@ export type Question = {
 export type Quiz = {
   id: string;
   title: string;
+  description: string | null;
   createdAt: string;
   questions: Question[];
 };
@@ -52,5 +53,6 @@ export type CreateQuestionInput =
 
 export type CreateQuizInput = {
   title: string;
+  description?: string | null;
   questions: CreateQuestionInput[];
 };

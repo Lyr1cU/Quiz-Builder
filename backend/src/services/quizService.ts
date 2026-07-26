@@ -8,6 +8,7 @@ export async function createQuiz(data: CreateQuizInput) {
   return prisma.quiz.create({
     data: {
       title: data.title,
+      description: data.description?.trim() || null,
       questions: {
         create: data.questions.map((q, index) => ({
           type: q.type,

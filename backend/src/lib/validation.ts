@@ -33,6 +33,7 @@ const checkboxQuestionSchema = baseQuestionSchema.extend({
 
 export const createQuizSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
+  description: z.string().trim().max(500).nullish(),
   questions: z
     .array(
       z.discriminatedUnion('type', [
