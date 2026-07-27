@@ -1,0 +1,31 @@
+# Render Blueprint: https://dashboard.render.com/blueprints
+# Requires DATABASE_URL (Neon) set as a secret / env group before first deploy.
+services:
+  - type: web
+    name: quiz-builder-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: NODE_VERSION
+        value: "20"
+
+  - type: web
+    name: quiz-builder-web
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NODE_VERSION
+        value: "20"
