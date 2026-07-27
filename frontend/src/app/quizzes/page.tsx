@@ -46,7 +46,12 @@ export default function QuizzesPage() {
         </Link>
       </div>
 
-      {loading && <p className="text-center text-sm text-white/80">Loading…</p>}
+      {loading && (
+        <p className="text-center text-sm text-white/80">
+          Loading… If this is the first visit in a while, the free API may take up to a minute to wake
+          up.
+        </p>
+      )}
 
       {!loading && error && (
         <div className="surface-card px-5 py-4 text-sm text-[var(--danger)]">

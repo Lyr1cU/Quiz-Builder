@@ -12,30 +12,48 @@ export class ApiError extends Error {
   }
 }
 
+const REQUEST_TIMEOUT_MS = 90_000;
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers || {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  if (res.status === 204) {
-    return undefined as T;
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.headers || {}),
+      },
+    });
+
+    if (res.status === 204) {
+      return undefined as T;
+    }
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const message =
+        typeof data === 'object' && data && 'error' in data
+          ? String((data as { error: string }).error)
+          : `Request failed (${res.status})`;
+      throw new ApiError(message, res.status);
+    }
+
+    return data as T;
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError(
+        'API is waking up or unreachable. Wait a bit and retry (Render free tier cold start).',
+        408,
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    const message =
-      typeof data === 'object' && data && 'error' in data
-        ? String((data as { error: string }).error)
-        : `Request failed (${res.status})`;
-    throw new ApiError(message, res.status);
-  }
-
-  return data as T;
 }
 
 export const api = {

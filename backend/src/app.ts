@@ -14,6 +14,14 @@ app.use(
 );
 app.use(express.json());
 
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'Quiz Builder API',
+    health: '/health',
+    quizzes: '/quizzes',
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
