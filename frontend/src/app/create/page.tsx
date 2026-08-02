@@ -24,7 +24,7 @@ export default function CreatePage() {
     <div>
       <PageHero
         title="Create quiz"
-        subtitle="Add a title and one or more questions (Boolean, Input, Single, or Multiple)."
+        subtitle="Build a quiz with questions and answers."
         light
       />
       <CreateQuizForm />

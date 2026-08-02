@@ -88,7 +88,7 @@ export default function QuizMyAttemptsPage() {
       )}
 
       {!loading && !error && attempts.length === 0 && (
-        <div className="surface-card mt-6 px-5 py-10 text-center text-sm text-[var(--muted)]">
+        <div className="surface-card mt-6 px-5 py-10 text-center text-sm text-muted-foreground">
           You have no saved attempts for this quiz yet. Finish practice while signed in to save one.
         </div>
       )}
@@ -101,7 +101,7 @@ export default function QuizMyAttemptsPage() {
                 href={`/quizzes/${id}/attempts/${attempt.id}`}
                 className="surface-card surface-card-interactive flex flex-wrap items-center justify-between gap-3 px-5 py-4"
               >
-                <p className="text-sm text-[var(--muted)]">{formatWhen(attempt.createdAt)}</p>
+                <p className="text-sm text-muted-foreground">{formatWhen(attempt.createdAt)}</p>
                 <p className="font-serif text-xl font-semibold text-[var(--ink)]">
                   {attempt.scoreCorrect}/{attempt.scoreTotal}
                 </p>

@@ -69,13 +69,13 @@ export default function MyAttemptsPage() {
       )}
 
       {!loading && !error && attempts.length === 0 && (
-        <div className="surface-card px-5 py-12 text-center text-sm text-[var(--muted)]">
+        <div className="surface-card px-5 py-12 text-center text-sm text-muted-foreground">
           No attempts yet. Finish a quiz in practice mode while signed in.
         </div>
       )}
 
       {!loading && !error && attempts.length > 0 && (
-        <ul className="space-y-3">
+        <ul className="flex flex-col gap-3">
           {attempts.map((attempt) => (
             <li key={attempt.id}>
               <Link
@@ -83,12 +83,12 @@ export default function MyAttemptsPage() {
                 className="surface-card surface-card-interactive flex flex-wrap items-center justify-between gap-3 px-5 py-4"
               >
                 <div>
-                  <p className="font-semibold text-[var(--ink)]">
+                  <p className="font-serif text-lg font-semibold text-ink">
                     {attempt.quizTitle ?? 'Quiz'}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{formatWhen(attempt.createdAt)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{formatWhen(attempt.createdAt)}</p>
                 </div>
-                <p className="font-serif text-xl font-semibold text-[var(--ink)]">
+                <p className="font-serif text-xl font-semibold text-ink">
                   {attempt.scoreCorrect}/{attempt.scoreTotal}
                 </p>
               </Link>

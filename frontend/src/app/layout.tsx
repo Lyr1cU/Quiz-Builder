@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Source_Sans_3 } from 'next/font/google';
 import { AnimatedMain } from '@/components/AnimatedMain';
 import { Nav } from '@/components/Nav';
 import { AuthProvider } from '@/context/AuthContext';
+import { Toaster } from '@/components/ui/sonner';
+import { cn } from '@/lib/utils';
 import './globals.css';
 
 const display = Cormorant_Garamond({
@@ -28,13 +30,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>
+    <html lang="en" className={cn(display.variable, body.variable, 'font-sans')}>
+      <body className="antialiased">
         <AuthProvider>
           <div className="page-shell">
             <Nav />
             <AnimatedMain>{children}</AnimatedMain>
           </div>
+          <Toaster richColors position="top-center" />
         </AuthProvider>
       </body>
     </html>

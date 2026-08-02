@@ -34,7 +34,7 @@ export function QuestionReadonly({
   return (
     <article className="border-b border-[var(--line)] py-6 last:border-b-0">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Question {index + 1}
         </span>
         <span className="rounded-full bg-[#efeae2] px-2.5 py-0.5 text-xs font-medium text-[var(--ink)]">
@@ -43,7 +43,7 @@ export function QuestionReadonly({
       </div>
       <p className="text-lg font-semibold text-[var(--ink)]">{question.text}</p>
 
-      <div className="mt-3 text-sm text-[var(--muted)]">
+      <div className="mt-3 text-sm text-muted-foreground">
         {hasBooleanAnswer && (
           <p>
             Correct answer:{' '}
@@ -75,7 +75,7 @@ export function QuestionReadonly({
                   className={
                     optionsRevealCorrect && opt.isCorrect
                       ? 'text-emerald-700'
-                      : 'text-[var(--muted)]'
+                      : 'text-muted-foreground'
                   }
                 >
                   {opt.label}

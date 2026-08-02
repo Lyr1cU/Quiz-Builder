@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -230,80 +231,80 @@ export function CreateQuizForm(props: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
-      <div>
-        <label htmlFor="title" className="mb-2 block text-sm font-semibold text-white/90">
-          Quiz title
-        </label>
-        <input
-          id="title"
-          type="text"
-          {...register('title')}
-          className="field-input"
-          placeholder="e.g. JavaScript Basics"
-        />
-        {errors.title && (
-          <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.title.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="description" className="mb-2 block text-sm font-semibold text-white/90">
-          Description <span className="font-normal text-white/50">(optional)</span>
-        </label>
-        <textarea
-          id="description"
-          rows={3}
-          {...register('description')}
-          className="field-input !rounded-2xl"
-          placeholder="Brief overview of what this quiz covers"
-        />
-        {errors.description && (
-          <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.description.message}</p>
-        )}
-      </div>
-
-      <div>
-        <p className="mb-2 text-sm font-semibold text-white/90">Visibility</p>
-        <div className="flex flex-wrap gap-6">
-          <label className="flex items-center gap-2 text-sm text-white/90">
-            <input
-              type="radio"
-              value="PUBLIC"
-              {...register('visibility')}
-              className="accent-[var(--gold-from)]"
-            />
-            Public — visible in the catalog
+    <form
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+      className="animate-in animate-in-delay-1 flex flex-col gap-8"
+    >
+      <div className="surface-card flex flex-col gap-6 px-5 py-7 sm:px-7">
+        <div>
+          <label htmlFor="title" className="mb-2 block text-sm font-semibold text-ink">
+            Quiz title
           </label>
-          <label className="flex items-center gap-2 text-sm text-white/90">
-            <input
-              type="radio"
-              value="PRIVATE"
-              {...register('visibility')}
-              className="accent-[var(--gold-from)]"
-            />
-            Private — only you + invite link
+          <input
+            id="title"
+            type="text"
+            {...register('title')}
+            className="field-input"
+            placeholder="e.g. JavaScript Basics"
+          />
+          {errors.title && (
+            <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.title.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="description" className="mb-2 block text-sm font-semibold text-ink">
+            Description <span className="font-normal text-muted-foreground">(optional)</span>
           </label>
+          <textarea
+            id="description"
+            rows={3}
+            {...register('description')}
+            className="field-input !rounded-2xl"
+            placeholder="Brief overview of what this quiz covers"
+          />
+          {errors.description && (
+            <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.description.message}</p>
+          )}
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-semibold text-ink">Visibility</p>
+          <div className="flex flex-wrap gap-6">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="radio"
+                value="PUBLIC"
+                {...register('visibility')}
+                className="accent-[var(--gold-from)]"
+              />
+              Public — visible in the catalog
+            </label>
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="radio"
+                value="PRIVATE"
+                {...register('visibility')}
+                className="accent-[var(--gold-from)]"
+              />
+              Private — only you + invite link
+            </label>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-white/90">Questions</h2>
-          <button
-            type="button"
-            onClick={() => append(emptyQuestion())}
-            className="gold-btn rounded-full px-4 py-2 text-sm font-semibold"
-          >
-            Add question +
-          </button>
-        </div>
+      <div className="flex flex-col gap-5">
+        <h2 className="font-serif text-2xl font-semibold text-white">Questions</h2>
 
         {errors.questions?.root && (
-          <p className="text-sm text-[var(--danger)]">{errors.questions.root.message}</p>
+          <p className="rounded-xl bg-white/95 px-4 py-3 text-sm text-[var(--danger)]">
+            {errors.questions.root.message}
+          </p>
         )}
         {typeof errors.questions?.message === 'string' && (
-          <p className="text-sm text-[var(--danger)]">{errors.questions.message}</p>
+          <p className="rounded-xl bg-white/95 px-4 py-3 text-sm text-[var(--danger)]">
+            {errors.questions.message}
+          </p>
         )}
 
         {fields.map((field, index) => {
@@ -427,19 +428,29 @@ export function CreateQuizForm(props: Props) {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="gold-btn w-full rounded-full px-6 py-3.5 text-sm font-semibold sm:w-auto sm:min-w-[12rem]"
-      >
-        {isSubmitting
-          ? mode === 'edit'
-            ? 'Saving…'
-            : 'Creating…'
-          : mode === 'edit'
-            ? 'Save changes'
-            : 'Create quiz'}
-      </button>
+      <div className="flex flex-col items-stretch justify-between gap-4 pt-2 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          onClick={() => append(emptyQuestion())}
+          className="btn-motion inline-flex h-12 items-center justify-center gap-2 rounded-full border-2 border-secondary bg-white px-8 text-sm font-bold text-secondary shadow-md hover:bg-secondary hover:text-white"
+        >
+          <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+          Add question
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="gold-btn h-12 w-full rounded-full px-10 text-sm font-bold sm:w-auto sm:min-w-[12rem]"
+        >
+          {isSubmitting
+            ? mode === 'edit'
+              ? 'Saving…'
+              : 'Creating…'
+            : mode === 'edit'
+              ? 'Save changes'
+              : 'Create quiz'}
+        </button>
+      </div>
     </form>
   );
 }

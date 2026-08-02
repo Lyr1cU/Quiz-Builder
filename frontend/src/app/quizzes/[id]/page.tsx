@@ -3,7 +3,15 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Download } from 'lucide-react';
 import { QuestionReadonly } from '@/components/QuestionReadonly';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError, api } from '@/services/api';
 import type { Quiz } from '@/types/quiz';
@@ -174,22 +182,34 @@ export default function QuizDetailPage() {
               </Link>
             )}
             {(quiz.visibility === 'PUBLIC' || isOwner) && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => void downloadPdf('worksheet')}
-                  className="btn-motion rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
-                >
-                  Download worksheet PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void downloadPdf('answers')}
-                  className="btn-motion rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
-                >
-                  Download answers PDF
-                </button>
-              </>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="btn-motion inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
+                  >
+                    <Download className="size-4" aria-hidden />
+                    Download
+                    <ChevronDown className="size-4 opacity-80" aria-hidden />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-56 rounded-xl p-1.5">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      className="cursor-pointer rounded-lg px-3 py-2.5"
+                      onSelect={() => void downloadPdf('worksheet')}
+                    >
+                      Download worksheet PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer rounded-lg px-3 py-2.5"
+                      onSelect={() => void downloadPdf('answers')}
+                    >
+                      Download answers PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
           {pdfMessage && <p className="mt-2 text-sm text-red-200">{pdfMessage}</p>}
@@ -197,7 +217,7 @@ export default function QuizDetailPage() {
           {isOwner && quiz.visibility === 'PRIVATE' && (
             <div className="surface-card mt-6 space-y-3 px-5 py-4">
               <p className="text-sm font-semibold text-[var(--ink)]">Invite link</p>
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-muted-foreground">
                 Guests with this link can open the quiz (without answers). Regenerate to invalidate
                 old links.
               </p>
@@ -206,7 +226,7 @@ export default function QuizDetailPage() {
                   {inviteUrl}
                 </p>
               ) : (
-                <p className="text-sm text-[var(--muted)]">No active invite link.</p>
+                <p className="text-sm text-muted-foreground">No active invite link.</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {inviteUrl && (
@@ -238,7 +258,7 @@ export default function QuizDetailPage() {
                 )}
               </div>
               {inviteMessage && (
-                <p className="text-sm text-[var(--muted)]">{inviteMessage}</p>
+                <p className="text-sm text-muted-foreground">{inviteMessage}</p>
               )}
             </div>
           )}

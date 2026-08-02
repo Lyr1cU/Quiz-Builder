@@ -3,8 +3,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { PageHero } from '@/components/PageHero';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,54 +39,52 @@ export default function LoginPage() {
   }
 
   return (
-    <div>
+    <div className="mx-auto max-w-md">
       <PageHero title="Log in" subtitle="Sign in to create and manage your quizzes." light />
-      <form onSubmit={onSubmit} className="mx-auto max-w-md space-y-5">
-        <div>
-          <label htmlFor="email" className="mb-2 block text-sm font-semibold text-white/90">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="field-input"
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="mb-2 block text-sm font-semibold text-white/90">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="field-input"
-          />
-        </div>
-        {error && (
-          <p className="rounded-xl bg-white/95 px-4 py-3 text-sm text-[var(--danger)]">{error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="gold-btn w-full rounded-full px-6 py-3.5 text-sm font-semibold"
-        >
-          {submitting ? 'Signing in…' : 'Log in'}
-        </button>
-        <p className="text-center text-sm text-white/80">
-          No account?{' '}
-          <Link href="/register" className="font-semibold text-white underline">
-            Register
-          </Link>
-        </p>
-      </form>
+      <Card className="animate-in animate-in-delay-1 gap-0 py-0">
+        <CardContent className="px-6 py-7">
+          <form onSubmit={onSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email" className="text-ink">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password" className="text-ink">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-destructive">{error}</p>
+            )}
+            <Button type="submit" variant="gold" size="lg" className="w-full" disabled={submitting}>
+              {submitting ? 'Signing in…' : 'Log in'}
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              No account?{' '}
+              <Link href="/register" className="font-semibold text-ink underline">
+                Register
+              </Link>
+            </p>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

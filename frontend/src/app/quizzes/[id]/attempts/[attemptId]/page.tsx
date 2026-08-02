@@ -118,7 +118,7 @@ export default function AttemptDetailPage() {
                 </div>
                 <div className="space-y-2 px-5 py-4 text-sm text-[var(--ink)]">
                   <p className="font-medium">{a.questionText}</p>
-                  <p className="text-[var(--muted)]">
+                  <p className="text-muted-foreground">
                     Your answer:{' '}
                     <span className="text-[var(--ink)]">{formatAnswer(a.userAnswer)}</span>
                   </p>

@@ -31,6 +31,7 @@ export type Quiz = {
 export type QuizListItem = {
   id: string;
   title: string;
+  description: string | null;
   createdAt: string;
   questionsCount: number;
   ownerId?: string;

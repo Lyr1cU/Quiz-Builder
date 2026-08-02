@@ -152,6 +152,7 @@ export async function listQuizzes(viewerId?: string, search?: string) {
   return quizzes.map((quiz) => ({
     id: quiz.id,
     title: quiz.title,
+    description: quiz.description,
     createdAt: quiz.createdAt,
     questionsCount: quiz._count.questions,
     ownerId: quiz.ownerId,

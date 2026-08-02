@@ -1,21 +1,57 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Brand palette */
   --navy: #10131c;
   --navy-deep: #0c0e14;
   --cream: #f4efe6;
   --cream-soft: #faf7f2;
   --ink: #1a1d27;
-  --muted: #6b6570;
+  --ink-muted: #6b6570;
   --gold-from: #b8954a;
   --gold-to: #8a6a32;
   --teal: #1f5c57;
   --teal-hover: #174a46;
   --danger: #9b3a3a;
-  --card: #ffffff;
   --line: #e8e2d8;
-  --background: var(--cream);
-  --foreground: var(--ink);
+
+  /* shadcn semantic tokens mapped to brand */
+  --background: #f4efe6;
+  --foreground: #1a1d27;
+  --card: #ffffff;
+  --card-foreground: #1a1d27;
+  --popover: #ffffff;
+  --popover-foreground: #1a1d27;
+  --primary: #b8954a;
+  --primary-foreground: #ffffff;
+  --secondary: #1f5c57;
+  --secondary-foreground: #ffffff;
+  --muted: #efeae2;
+  --muted-foreground: #6b6570;
+  --accent: #f8f3ea;
+  --accent-foreground: #1a1d27;
+  --destructive: #9b3a3a;
+  --border: #e8e2d8;
+  --input: #e8e2d8;
+  --ring: #b8954a;
+  --chart-1: #b8954a;
+  --chart-2: #1f5c57;
+  --chart-3: #8a6a32;
+  --chart-4: #3d4254;
+  --chart-5: #cfc6b6;
+  --radius: 1.25rem;
+  --sidebar: #faf7f2;
+  --sidebar-foreground: #1a1d27;
+  --sidebar-primary: #b8954a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efeae2;
+  --sidebar-accent-foreground: #1a1d27;
+  --sidebar-border: #e8e2d8;
+  --sidebar-ring: #b8954a;
 }
 
 @theme inline {
@@ -24,35 +60,80 @@
   --color-navy: var(--navy);
   --color-cream: var(--cream);
   --color-ink: var(--ink);
-  --color-muted: var(--muted);
+  --color-ink-muted: var(--ink-muted);
   --color-teal: var(--teal);
   --color-danger: var(--danger);
   --color-line: var(--line);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: var(--font-body);
   --font-serif: var(--font-display);
+  --font-heading: var(--font-display);
+  --radius-sm: calc(var(--radius) * 0.4);
+  --radius-md: calc(var(--radius) * 0.6);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.4);
+  --radius-3xl: calc(var(--radius) * 1.6);
+  --radius-4xl: calc(var(--radius) * 1.8);
 }
 
-body {
-  background: var(--cream);
-  color: var(--ink);
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  html {
+    @apply font-sans;
+  }
 }
 
 .page-shell {
   min-height: 100vh;
+  /* Canonical shell from Create quiz Stitch mock — same on every route */
   background: linear-gradient(
     135deg,
-    var(--navy) 0%,
-    #1a2030 28%,
-    #3d4254 48%,
-    #cfc6b6 68%,
-    var(--cream) 100%
+    #10131c 0%,
+    #324a5e 30%,
+    #8a6a32 70%,
+    #f4efe6 100%
   );
   background-attachment: fixed;
 }
 
-/* Shared press/hover motion (gold-btn adds its own shadow/color) */
 .btn-motion,
 .gold-btn {
   transition:
@@ -139,6 +220,17 @@ body {
   }
 }
 
+@keyframes feedback-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .animate-in {
   animation: fade-up 0.45s ease both;
 }
@@ -155,12 +247,17 @@ body {
   animation-delay: 0.18s;
 }
 
+.animate-feedback {
+  animation: feedback-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .stagger-item {
   animation: fade-up 0.4s ease both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-in,
+  .animate-feedback,
   .stagger-item,
   .surface-card,
   .gold-btn,

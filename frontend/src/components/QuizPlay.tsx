@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
+import { cn } from '@/lib/utils';
 import type { CheckAnswerResult, PlayQuestion, PlayQuiz, SubmitAttemptInput } from '@/types/quiz';
 
 type Props = {
@@ -38,6 +40,85 @@ function formatAnswer(value: boolean | string | string[] | null | undefined): st
   if (typeof value === 'boolean') return value ? 'True' : 'False';
   if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
   return value || '—';
+}
+
+function optionLetter(index: number) {
+  return String.fromCharCode(65 + index);
+}
+
+function LetterBadge({ letter, selected }: { letter: string; selected: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
+        selected
+          ? 'border-[var(--gold-from)] bg-[var(--gold-from)] text-white'
+          : 'border-[var(--line)] bg-white text-muted-foreground',
+      )}
+    >
+      {letter}
+    </span>
+  );
+}
+
+function SingleCheck({ selected }: { selected: boolean }) {
+  if (!selected) return <span className="size-6 shrink-0" aria-hidden />;
+  return (
+    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--gold-from)] text-white">
+      <Check className="size-3.5" strokeWidth={3} aria-hidden />
+    </span>
+  );
+}
+
+function MultiCheck({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex size-6 shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors',
+        selected
+          ? 'border-[var(--gold-from)] bg-[var(--gold-from)] text-white'
+          : 'border-[var(--line)] bg-white',
+      )}
+      aria-hidden
+    >
+      {selected && <Check className="size-3.5" strokeWidth={3} />}
+    </span>
+  );
+}
+
+function ChoiceOptionButton({
+  letter,
+  label,
+  selected,
+  disabled,
+  mode,
+  onClick,
+}: {
+  letter: string;
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  mode: 'single' | 'multiple';
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-full border px-4 py-3 text-left text-sm font-medium transition-colors',
+        selected
+          ? 'border-[var(--gold-from)] bg-[#f8f1e0] text-ink'
+          : 'border-[var(--line)] bg-white text-ink hover:border-[var(--gold-from)]/50',
+        disabled && 'cursor-default opacity-90',
+      )}
+    >
+      <LetterBadge letter={letter} selected={selected} />
+      <span className="min-w-0 flex-1">{label}</span>
+      {mode === 'single' ? <SingleCheck selected={selected} /> : <MultiCheck selected={selected} />}
+    </button>
+  );
 }
 
 export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
@@ -176,19 +257,25 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
 
   if (finished) {
     return (
-      <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
+      <div className="animate-in mt-6">
+        <p className="animate-in text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
           Practice complete
         </p>
-        <h1 className="mt-2 font-serif text-4xl font-semibold text-white">{quiz.title}</h1>
-        <div className="surface-card mt-8 px-5 py-8 text-center">
+        <h1 className="animate-in animate-in-delay-1 mt-2 font-serif text-4xl font-semibold text-white">
+          {quiz.title}
+        </h1>
+        <div className="animate-in animate-in-delay-2 surface-card mt-8 px-5 py-8 text-center">
           <p className="font-serif text-3xl font-semibold text-[var(--ink)]">
             {(savedScore ?? score).correct} / {(savedScore ?? score).total}
           </p>
-          <p className="mt-2 text-sm text-[var(--muted)]">correct answers</p>
-          {saving && <p className="mt-3 text-sm text-[var(--muted)]">Saving your attempt…</p>}
+          <p className="mt-2 text-sm text-muted-foreground">correct answers</p>
+          {saving && (
+            <p className="animate-feedback mt-3 text-sm text-muted-foreground">
+              Saving your attempt…
+            </p>
+          )}
           {!saving && saved && (
-            <p className="mt-3 text-sm text-emerald-700">
+            <p className="animate-feedback mt-3 text-sm text-emerald-700">
               Saved to{' '}
               <Link href="/my-attempts" className="underline">
                 your attempt history
@@ -197,7 +284,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
             </p>
           )}
           {!saving && !user && (
-            <p className="mt-3 text-sm text-[var(--muted)]">
+            <p className="animate-feedback mt-3 text-sm text-muted-foreground">
               <Link href="/login" className="underline">
                 Sign in
               </Link>{' '}
@@ -205,9 +292,9 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
             </p>
           )}
           {!saving && saveError && (
-            <p className="mt-3 text-sm text-[var(--danger)]">{saveError}</p>
+            <p className="animate-feedback mt-3 text-sm text-[var(--danger)]">{saveError}</p>
           )}
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <div className="animate-in animate-in-delay-3 mt-6 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -235,6 +322,8 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
     );
   }
 
+  const progressPct = Math.round((progress.current / Math.max(progress.total, 1)) * 100);
+
   return (
     <div className="mt-6">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
@@ -243,31 +332,41 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
       <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-white sm:text-5xl">
         {quiz.title}
       </h1>
-      <p className="mt-2 text-sm text-white/70">
-        Question {progress.current} of {progress.total}
-      </p>
 
       <div className="surface-card mt-8 overflow-hidden">
-        <div className="h-8 bg-[#e8dfd0]" />
         <div className="space-y-5 px-5 py-6 sm:px-7">
-          <p className="text-lg font-semibold text-[var(--ink)]">{question.text}</p>
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Question {progress.current} of {progress.total}
+            </p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efeae2]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--gold-from)] to-[var(--gold-to)] transition-[width] duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+
+          <p className="font-serif text-2xl font-semibold text-ink sm:text-3xl">{question.text}</p>
 
           {question.type === 'BOOLEAN' && (
-            <div className="flex gap-6">
-              {([true, false] as const).map((value) => (
-                <label key={String(value)} className="flex items-center gap-2 text-sm text-[var(--ink)]">
-                  <input
-                    type="radio"
-                    name="boolean-answer"
-                    checked={answer.type === 'BOOLEAN' && answer.value === value}
-                    disabled={Boolean(result)}
-                    onChange={() => setAnswer({ type: 'BOOLEAN', value })}
-                    className="accent-[var(--gold-from)]"
-                  />
-                  {value ? 'True' : 'False'}
-                </label>
-              ))}
-            </div>
+            <ul className="flex flex-col gap-2">
+              {([true, false] as const).map((value, i) => {
+                const selected = answer.type === 'BOOLEAN' && answer.value === value;
+                return (
+                  <li key={String(value)}>
+                    <ChoiceOptionButton
+                      letter={optionLetter(i)}
+                      label={value ? 'True' : 'False'}
+                      selected={selected}
+                      disabled={Boolean(result)}
+                      mode="single"
+                      onClick={() => setAnswer({ type: 'BOOLEAN', value })}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
           )}
 
           {question.type === 'INPUT' && (
@@ -282,66 +381,65 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
           )}
 
           {question.type === 'SINGLE' && Array.isArray(question.options) && (
-            <ul className="space-y-2">
-              {question.options.map((opt) => (
-                <li key={opt.label}>
-                  <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
-                    <input
-                      type="radio"
-                      name="single-answer"
-                      disabled={Boolean(result)}
-                      checked={answer.type === 'SINGLE' && answer.value === opt.label}
-                      onChange={() => setAnswer({ type: 'SINGLE', value: opt.label })}
-                      className="accent-[var(--gold-from)]"
-                    />
-                    {opt.label}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {question.type === 'MULTIPLE' && Array.isArray(question.options) && (
-            <ul className="space-y-2">
-              {question.options.map((opt) => {
-                const selected = answer.type === 'MULTIPLE' && answer.value.includes(opt.label);
+            <ul className="flex flex-col gap-2">
+              {question.options.map((opt, i) => {
+                const selected = answer.type === 'SINGLE' && answer.value === opt.label;
                 return (
                   <li key={opt.label}>
-                    <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
-                      <input
-                        type="checkbox"
-                        disabled={Boolean(result)}
-                        checked={selected}
-                        onChange={() => {
-                          if (answer.type !== 'MULTIPLE') return;
-                          const next = selected
-                            ? answer.value.filter((v) => v !== opt.label)
-                            : [...answer.value, opt.label];
-                          setAnswer({ type: 'MULTIPLE', value: next });
-                        }}
-                        className="accent-[var(--gold-from)]"
-                      />
-                      {opt.label}
-                    </label>
+                    <ChoiceOptionButton
+                      letter={optionLetter(i)}
+                      label={opt.label}
+                      selected={selected}
+                      disabled={Boolean(result)}
+                      mode="single"
+                      onClick={() => setAnswer({ type: 'SINGLE', value: opt.label })}
+                    />
                   </li>
                 );
               })}
             </ul>
           )}
 
-          {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+          {question.type === 'MULTIPLE' && Array.isArray(question.options) && (
+            <ul className="flex flex-col gap-2">
+              {question.options.map((opt, i) => {
+                const selected = answer.type === 'MULTIPLE' && answer.value.includes(opt.label);
+                return (
+                  <li key={opt.label}>
+                    <ChoiceOptionButton
+                      letter={optionLetter(i)}
+                      label={opt.label}
+                      selected={selected}
+                      disabled={Boolean(result)}
+                      mode="multiple"
+                      onClick={() => {
+                        if (answer.type !== 'MULTIPLE') return;
+                        const next = selected
+                          ? answer.value.filter((v) => v !== opt.label)
+                          : [...answer.value, opt.label];
+                        setAnswer({ type: 'MULTIPLE', value: next });
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {result && (
             <div
-              className={`rounded-xl px-4 py-3 text-sm ${
+              key={`${question.id}-${result.isCorrect}`}
+              className={`animate-feedback rounded-xl px-4 py-3 text-sm ${
                 result.isCorrect
                   ? 'bg-emerald-50 text-emerald-800'
-                  : 'bg-red-50 text-[var(--danger)]'
+                  : 'bg-red-50 text-destructive'
               }`}
             >
               <p className="font-semibold">{result.isCorrect ? 'Correct!' : 'Incorrect'}</p>
               {!result.isCorrect && (
-                <div className="mt-2 space-y-1 text-[var(--ink)]">
+                <div className="mt-2 space-y-1 text-ink">
                   <p>
                     Your answer:{' '}
                     <span className="font-medium">{formatAnswer(result.userAnswer)}</span>
@@ -371,12 +469,12 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
                 onClick={onNext}
                 className="gold-btn rounded-full px-5 py-2.5 text-sm font-semibold"
               >
-                {index >= questions.length - 1 ? 'See results' : 'Next question'}
+                {index >= questions.length - 1 ? 'See results' : 'Continue'}
               </button>
             )}
             <Link
               href={backHref}
-              className="rounded-full border border-[var(--line)] bg-white px-5 py-2.5 text-sm font-medium text-[var(--ink)]"
+              className="rounded-full border border-secondary bg-white px-5 py-2.5 text-sm font-medium text-secondary transition hover:bg-[#eef5f4]"
             >
               Exit
             </Link>

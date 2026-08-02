@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHero } from '@/components/PageHero';
 import { QuizListItemCard } from '@/components/QuizListItemCard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import type { QuizListItem } from '@/types/quiz';
+import { cn } from '@/lib/utils';
 
 type Filter = 'all' | 'mine';
 
@@ -67,30 +71,25 @@ export default function QuizzesPage() {
     <div>
       <PageHero
         title="Quizzes"
-        subtitle="Public quizzes for everyone. Sign in to see your private ones too."
+        subtitle="Browse public quizzes or open ones you created."
         light
+        actions={
+          <Button asChild variant="gold" size="lg" className="min-w-[12rem]">
+            <Link href="/create">Create quiz</Link>
+          </Button>
+        }
       />
 
-      <div className="animate-in animate-in-delay-1 mb-6 flex flex-wrap items-center justify-center gap-3">
-        <Link
-          href="/create"
-          className="gold-btn inline-flex min-w-[14rem] items-center justify-center rounded-full px-8 py-3 text-sm font-semibold"
-        >
-          Create quiz +
-        </Link>
-      </div>
-
-      <div className="mb-6 mx-auto max-w-xl">
+      <div className="animate-in animate-in-delay-1 mb-6 mx-auto max-w-xl">
         <label htmlFor="quiz-search" className="sr-only">
           Search quizzes
         </label>
-        <input
+        <Input
           id="quiz-search"
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search by title or description…"
-          className="field-input"
         />
       </div>
 
@@ -99,18 +98,20 @@ export default function QuizzesPage() {
           <button
             type="button"
             onClick={() => setFilter('all')}
-            className={`rounded-full px-4 py-2 text-sm font-medium ${
-              filter === 'all' ? 'bg-white text-[var(--ink)]' : 'bg-white/10 text-white/80'
-            }`}
+            className={cn(
+              'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+              filter === 'all' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
+            )}
           >
             Catalog
           </button>
           <button
             type="button"
             onClick={() => setFilter('mine')}
-            className={`rounded-full px-4 py-2 text-sm font-medium ${
-              filter === 'mine' ? 'bg-white text-[var(--ink)]' : 'bg-white/10 text-white/80'
-            }`}
+            className={cn(
+              'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+              filter === 'mine' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
+            )}
           >
             My quizzes
           </button>
@@ -125,30 +126,34 @@ export default function QuizzesPage() {
       )}
 
       {!loading && error && (
-        <div className="surface-card px-5 py-4 text-sm text-[var(--danger)]">
-          <p>{error}</p>
-          <button type="button" onClick={() => void load()} className="mt-2 underline">
-            Retry
-          </button>
-        </div>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-5 py-4 text-sm text-destructive">
+            <p>{error}</p>
+            <button type="button" onClick={() => void load()} className="mt-2 underline">
+              Retry
+            </button>
+          </CardContent>
+        </Card>
       )}
 
       {!loading && !error && visible.length === 0 && (
-        <div className="surface-card px-5 py-12 text-center">
-          <p className="text-[var(--muted)]">{emptyMessage}</p>
-          {!debouncedSearch && (
-            <Link
-              href="/create"
-              className="mt-3 inline-block text-sm font-semibold text-[var(--ink)] underline"
-            >
-              Create your first quiz
-            </Link>
-          )}
-        </div>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-5 py-12 text-center">
+            <p className="text-muted-foreground">{emptyMessage}</p>
+            {!debouncedSearch && (
+              <Link
+                href="/create"
+                className="mt-3 inline-block text-sm font-semibold text-ink underline"
+              >
+                Create your first quiz
+              </Link>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {!loading && !error && visible.length > 0 && (
-        <ul className="space-y-4">
+        <ul className="flex flex-col gap-4">
           {visible.map((quiz, index) => (
             <QuizListItemCard
               key={quiz.id}
