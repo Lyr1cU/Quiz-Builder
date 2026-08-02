@@ -1,4 +1,5 @@
-# Render Blueprint: https://dashboard.render.com/blueprints
+# Render Blueprint (legacy — project is moving to Vercel).
+# Prefer the Deploy section in README.md. Keep this file only if you still use Render.
 # Requires DATABASE_URL (Neon) set as a secret / env group before first deploy.
 services:
   - type: web
@@ -13,6 +14,8 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: FRONTEND_ORIGIN
+        sync: false
+      - key: JWT_SECRET
         sync: false
       - key: NODE_VERSION
         value: "20"

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Cormorant_Garamond, Source_Sans_3 } from 'next/font/google';
 import { AnimatedMain } from '@/components/AnimatedMain';
 import { Nav } from '@/components/Nav';
+import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 
 const display = Cormorant_Garamond({
@@ -29,10 +30,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${display.variable} ${body.variable} antialiased`}>
-        <div className="page-shell">
-          <Nav />
-          <AnimatedMain>{children}</AnimatedMain>
-        </div>
+        <AuthProvider>
+          <div className="page-shell">
+            <Nav />
+            <AnimatedMain>{children}</AnimatedMain>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

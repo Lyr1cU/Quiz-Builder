@@ -52,24 +52,34 @@ body {
   background-attachment: fixed;
 }
 
+/* Shared press/hover motion (gold-btn adds its own shadow/color) */
+.btn-motion,
 .gold-btn {
-  background: linear-gradient(180deg, var(--gold-from), var(--gold-to));
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(138, 106, 50, 0.28);
   transition:
     filter 0.2s ease,
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
+.btn-motion:hover:not(:disabled),
 .gold-btn:hover:not(:disabled) {
   filter: brightness(1.06);
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(138, 106, 50, 0.34);
 }
 
+.btn-motion:active:not(:disabled),
 .gold-btn:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.gold-btn {
+  background: linear-gradient(180deg, var(--gold-from), var(--gold-to));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(138, 106, 50, 0.28);
+}
+
+.gold-btn:hover:not(:disabled) {
+  box-shadow: 0 12px 24px rgba(138, 106, 50, 0.34);
 }
 
 .gold-btn:disabled {
@@ -153,13 +163,15 @@ body {
   .animate-in,
   .stagger-item,
   .surface-card,
-  .gold-btn {
+  .gold-btn,
+  .btn-motion {
     animation: none !important;
     transition: none !important;
   }
 
   .surface-card-interactive:hover,
-  .gold-btn:hover:not(:disabled) {
+  .gold-btn:hover:not(:disabled),
+  .btn-motion:hover:not(:disabled) {
     transform: none;
   }
 }

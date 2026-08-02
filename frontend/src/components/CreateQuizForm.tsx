@@ -9,10 +9,12 @@ import {
   type Control,
   type FieldErrors,
   type UseFormRegister,
+  type UseFormSetValue,
+  type UseFormWatch,
 } from 'react-hook-form';
 import { z } from 'zod';
 import { api } from '@/services/api';
-import type { CreateQuizInput, QuestionType } from '@/types/quiz';
+import type { CreateQuizInput, QuestionType, Quiz } from '@/types/quiz';
 
 const optionSchema = z.object({
   label: z.string(),
@@ -21,7 +23,7 @@ const optionSchema = z.object({
 
 const questionSchema = z
   .object({
-    type: z.enum(['BOOLEAN', 'INPUT', 'CHECKBOX']),
+    type: z.enum(['BOOLEAN', 'INPUT', 'SINGLE', 'MULTIPLE']),
     text: z.string().trim().min(1, 'Question text is required'),
     booleanAnswer: z.enum(['true', 'false']),
     inputAnswer: z.string(),
@@ -35,7 +37,8 @@ const questionSchema = z
         path: ['inputAnswer'],
       });
     }
-    if (q.type === 'CHECKBOX') {
+
+    if (q.type === 'SINGLE' || q.type === 'MULTIPLE') {
       if (q.options.length < 2) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -43,6 +46,7 @@ const questionSchema = z
           path: ['options'],
         });
       }
+
       q.options.forEach((opt, index) => {
         if (opt.label.trim().length === 0) {
           ctx.addIssue({
@@ -52,7 +56,18 @@ const questionSchema = z
           });
         }
       });
-      if (!q.options.some((o) => o.isCorrect)) {
+
+      const correctCount = q.options.filter((o) => o.isCorrect).length;
+
+      if (q.type === 'SINGLE' && correctCount !== 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Mark exactly one option as correct',
+          path: ['options'],
+        });
+      }
+
+      if (q.type === 'MULTIPLE' && correctCount < 1) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Mark at least one option as correct',
@@ -65,6 +80,7 @@ const questionSchema = z
 const formSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   description: z.string().trim().max(500, 'Description must be 500 characters or less'),
+  visibility: z.enum(['PUBLIC', 'PRIVATE']),
   questions: z.array(questionSchema).min(1, 'Add at least one question'),
 });
 
@@ -83,11 +99,40 @@ function emptyQuestion(): FormValues['questions'][number] {
   };
 }
 
+function quizToFormValues(quiz: Quiz): FormValues {
+  return {
+    title: quiz.title,
+    description: quiz.description ?? '',
+    visibility: quiz.visibility,
+    questions: quiz.questions.map((q) => {
+      const options =
+        q.options && q.options.length >= 2
+          ? q.options.map((o) => ({
+              label: o.label,
+              isCorrect: Boolean(o.isCorrect),
+            }))
+          : [
+              { label: '', isCorrect: true },
+              { label: '', isCorrect: false },
+            ];
+
+      return {
+        type: q.type,
+        text: q.text,
+        booleanAnswer: q.booleanAnswer === false ? 'false' : 'true',
+        inputAnswer: q.inputAnswer ?? '',
+        options,
+      };
+    }),
+  };
+}
+
 function toPayload(values: FormValues): CreateQuizInput {
   const description = values.description.trim();
   return {
     title: values.title.trim(),
     description: description || null,
+    visibility: values.visibility,
     questions: values.questions.map((q, order) => {
       if (q.type === 'BOOLEAN') {
         return {
@@ -106,7 +151,7 @@ function toPayload(values: FormValues): CreateQuizInput {
         };
       }
       return {
-        type: 'CHECKBOX',
+        type: q.type,
         text: q.text.trim(),
         options: q.options.map((o) => ({
           label: o.label.trim(),
@@ -118,7 +163,13 @@ function toPayload(values: FormValues): CreateQuizInput {
   };
 }
 
-export function CreateQuizForm() {
+type Props =
+  | { mode?: 'create' }
+  | { mode: 'edit'; quiz: Quiz };
+
+export function CreateQuizForm(props: Props) {
+  const mode = props.mode === 'edit' ? 'edit' : 'create';
+  const quiz = props.mode === 'edit' ? props.quiz : null;
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -128,14 +179,18 @@ export function CreateQuizForm() {
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      questions: [emptyQuestion()],
-    },
+    defaultValues: quiz
+      ? quizToFormValues(quiz)
+      : {
+          title: '',
+          description: '',
+          visibility: 'PUBLIC',
+          questions: [emptyQuestion()],
+        },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -149,15 +204,29 @@ export function CreateQuizForm() {
     setSubmitError(null);
     setValidationError(null);
     try {
-      const quiz = await api.createQuiz(toPayload(values));
-      router.push(`/quizzes/${quiz.id}`);
+      const payload = toPayload(values);
+      const saved =
+        mode === 'edit' && quiz
+          ? await api.updateQuiz(quiz.id, payload)
+          : await api.createQuiz(payload);
+      router.push(`/quizzes/${saved.id}`);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to create quiz');
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : mode === 'edit'
+            ? 'Failed to update quiz'
+            : 'Failed to create quiz',
+      );
     }
   }
 
   function onInvalid() {
-    setValidationError('Please fix the highlighted fields before creating the quiz.');
+    setValidationError(
+      mode === 'edit'
+        ? 'Please fix the highlighted fields before saving the quiz.'
+        : 'Please fix the highlighted fields before creating the quiz.',
+    );
   }
 
   return (
@@ -192,6 +261,30 @@ export function CreateQuizForm() {
         {errors.description && (
           <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.description.message}</p>
         )}
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-semibold text-white/90">Visibility</p>
+        <div className="flex flex-wrap gap-6">
+          <label className="flex items-center gap-2 text-sm text-white/90">
+            <input
+              type="radio"
+              value="PUBLIC"
+              {...register('visibility')}
+              className="accent-[var(--gold-from)]"
+            />
+            Public — visible in the catalog
+          </label>
+          <label className="flex items-center gap-2 text-sm text-white/90">
+            <input
+              type="radio"
+              value="PRIVATE"
+              {...register('visibility')}
+              className="accent-[var(--gold-from)]"
+            />
+            Private — only you + invite link
+          </label>
+        </div>
       </div>
 
       <div className="space-y-5">
@@ -240,7 +333,8 @@ export function CreateQuizForm() {
                   <select {...register(`questions.${index}.type`)} className="field-select">
                     <option value="BOOLEAN">Boolean</option>
                     <option value="INPUT">Input</option>
-                    <option value="CHECKBOX">Checkbox</option>
+                    <option value="SINGLE">Single choice</option>
+                    <option value="MULTIPLE">Multiple choice</option>
                   </select>
                 </div>
 
@@ -304,11 +398,14 @@ export function CreateQuizForm() {
                   </div>
                 )}
 
-                {type === 'CHECKBOX' && (
-                  <CheckboxOptions
+                {(type === 'SINGLE' || type === 'MULTIPLE') && (
+                  <ChoiceOptions
                     questionIndex={index}
+                    mode={type === 'SINGLE' ? 'single' : 'multiple'}
                     control={control}
                     register={register}
+                    setValue={setValue}
+                    watch={watch}
                     questionErrors={qErrors}
                   />
                 )}
@@ -335,21 +432,33 @@ export function CreateQuizForm() {
         disabled={isSubmitting}
         className="gold-btn w-full rounded-full px-6 py-3.5 text-sm font-semibold sm:w-auto sm:min-w-[12rem]"
       >
-        {isSubmitting ? 'Creating…' : 'Create quiz'}
+        {isSubmitting
+          ? mode === 'edit'
+            ? 'Saving…'
+            : 'Creating…'
+          : mode === 'edit'
+            ? 'Save changes'
+            : 'Create quiz'}
       </button>
     </form>
   );
 }
 
-function CheckboxOptions({
+function ChoiceOptions({
   questionIndex,
+  mode,
   control,
   register,
+  setValue,
+  watch,
   questionErrors,
 }: {
   questionIndex: number;
+  mode: 'single' | 'multiple';
   control: Control<FormValues>;
   register: UseFormRegister<FormValues>;
+  setValue: UseFormSetValue<FormValues>;
+  watch: UseFormWatch<FormValues>;
   questionErrors?: FieldErrors<FormValues['questions'][number]>;
 }) {
   const errorMessage =
@@ -359,6 +468,8 @@ function CheckboxOptions({
     control,
     name: `questions.${questionIndex}.options`,
   });
+
+  const optionValues = watch(`questions.${questionIndex}.options`);
 
   return (
     <div className="space-y-3">
@@ -388,11 +499,36 @@ function CheckboxOptions({
               </p>
             )}
             <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
-              <input
-                type="checkbox"
-                {...register(`questions.${questionIndex}.options.${optIndex}.isCorrect`)}
-                className="accent-[var(--gold-from)]"
-              />
+              {mode === 'multiple' ? (
+                <input
+                  type="checkbox"
+                  className="accent-[var(--gold-from)]"
+                  checked={optionValues?.[optIndex]?.isCorrect ?? false}
+                  onChange={(e) => {
+                    setValue(
+                      `questions.${questionIndex}.options.${optIndex}.isCorrect`,
+                      e.target.checked,
+                      { shouldDirty: true, shouldValidate: true },
+                    );
+                  }}
+                />
+              ) : (
+                <input
+                  type="radio"
+                  name={`questions.${questionIndex}.correct`}
+                  className="accent-[var(--gold-from)]"
+                  checked={optionValues?.[optIndex]?.isCorrect ?? false}
+                  onChange={() => {
+                    fields.forEach((_, i) => {
+                      setValue(
+                        `questions.${questionIndex}.options.${i}.isCorrect`,
+                        i === optIndex,
+                        { shouldDirty: true, shouldValidate: true },
+                      );
+                    });
+                  }}
+                />
+              )}
               Correct
             </label>
             {fields.length > 2 && (

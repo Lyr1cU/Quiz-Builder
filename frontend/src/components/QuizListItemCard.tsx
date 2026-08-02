@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import type { QuizListItem } from '@/types/quiz';
 
@@ -24,6 +25,20 @@ function EyeIcon() {
   );
 }
 
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
+      <path
+        d="M4 20h4l10.5-10.5a1.5 1.5 0 0 0-2.1-2.1L6 17.9V20Zm11.4-12.9 2.1 2.1"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function TrashIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
@@ -39,8 +54,10 @@ function TrashIcon() {
 }
 
 export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
+  const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canManage = Boolean(user && quiz.ownerId && user.id === quiz.ownerId);
 
   async function handleDelete() {
     if (!confirm(`Delete quiz "${quiz.title}"?`)) return;
@@ -70,9 +87,14 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
           >
             {quiz.title}
           </Link>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {quiz.questionsCount} question{quiz.questionsCount === 1 ? '' : 's'}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
+            <span>
+              {quiz.questionsCount} question{quiz.questionsCount === 1 ? '' : 's'}
+            </span>
+            <span className="rounded-full bg-[#efeae2] px-2 py-0.5 text-xs font-medium text-[var(--ink)]">
+              {quiz.visibility === 'PRIVATE' ? 'Private' : 'Public'}
+            </span>
+          </div>
           {error && <p className="mt-1 text-sm text-[var(--danger)]">{error}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -83,15 +105,26 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
             <EyeIcon />
             View
           </Link>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--danger)] bg-white px-4 py-2 text-sm font-medium text-[var(--danger)] transition duration-200 hover:-translate-y-0.5 hover:bg-red-50 disabled:opacity-50"
-          >
-            <TrashIcon />
-            {deleting ? 'Deleting…' : 'Delete'}
-          </button>
+          {canManage && (
+            <Link
+              href={`/quizzes/${quiz.id}/edit`}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--teal)] bg-white px-4 py-2 text-sm font-medium text-[var(--teal)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#eef5f4]"
+            >
+              <PencilIcon />
+              Edit
+            </Link>
+          )}
+          {canManage && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--danger)] bg-white px-4 py-2 text-sm font-medium text-[var(--danger)] transition duration-200 hover:-translate-y-0.5 hover:bg-red-50 disabled:opacity-50"
+            >
+              <TrashIcon />
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          )}
         </div>
       </div>
     </li>

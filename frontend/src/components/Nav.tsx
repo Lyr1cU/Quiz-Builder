@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 function LightbulbIcon({ className }: { className?: string }) {
   return (
@@ -51,8 +52,10 @@ function NavLink({
 
 export function Nav() {
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
   const createActive = pathname.startsWith('/create');
   const quizzesActive = pathname === '/quizzes' || pathname.startsWith('/quizzes/');
+  const attemptsActive = pathname.startsWith('/my-attempts');
 
   return (
     <header className="border-b border-white/10 bg-[var(--navy-deep)]/90 backdrop-blur-sm">
@@ -64,13 +67,45 @@ export function Nav() {
           <LightbulbIcon className="h-6 w-6 text-[var(--gold-from)] transition-transform duration-300 hover:rotate-6" />
           <span className="font-serif text-2xl font-semibold tracking-tight">Quiz Builder</span>
         </Link>
-        <nav className="flex items-center gap-6 text-sm font-medium">
-          <NavLink href="/create" active={createActive}>
-            Create quiz
-          </NavLink>
+        <nav className="flex flex-wrap items-center justify-end gap-4 text-sm font-medium sm:gap-6">
+          {user && (
+            <NavLink href="/create" active={createActive}>
+              Create quiz
+            </NavLink>
+          )}
           <NavLink href="/quizzes" active={quizzesActive}>
             Quizzes
           </NavLink>
+          {user && (
+            <NavLink href="/my-attempts" active={attemptsActive}>
+              My attempts
+            </NavLink>
+          )}
+          {!loading && user && (
+            <>
+              <span className="hidden text-white/70 sm:inline">{user.name || user.email}</span>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="text-white/80 transition-colors hover:text-white"
+              >
+                Log out
+              </button>
+            </>
+          )}
+          {!loading && !user && (
+            <>
+              <NavLink href="/login" active={pathname.startsWith('/login')}>
+                Log in
+              </NavLink>
+              <Link
+                href="/register"
+                className="rounded-full bg-white/10 px-3 py-1.5 text-white transition-colors hover:bg-white/15"
+              >
+                Register
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

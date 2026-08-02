@@ -7,18 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum QuizVisibility {
+  PUBLIC
+  PRIVATE
+}
+
 enum QuestionType {
   BOOLEAN
   INPUT
-  CHECKBOX
+  SINGLE
+  MULTIPLE
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String?
+  name         String?
+  createdAt    DateTime      @default(now())
+  quizzes      Quiz[]
+  attempts     QuizAttempt[]
 }
 
 model Quiz {
-  id          String     @id @default(cuid())
+  ownerId     String
+  owner       User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  visibility  QuizVisibility @default(PUBLIC)
+  inviteToken String?        @unique
+  id          String         @id @default(cuid())
   title       String
   description String?
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime       @default(now())
   questions   Question[]
+  attempts    QuizAttempt[]
 }
 
 model Question {
@@ -30,8 +51,40 @@ model Question {
   order         Int          @default(0)
   booleanAnswer Boolean?
   inputAnswer   String?
-  /// CHECKBOX options: [{ label: string, isCorrect: boolean }]
+  /// SINGLE/MULTIPLE options: [{ label, isCorrect }]
   options       Json?
 
   @@index([quizId])
+}
+
+model QuizAttempt {
+  id           String          @id @default(cuid())
+  quizId       String
+  quiz         Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  /// null = guest practice
+  userId       String?
+  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  scoreCorrect Int
+  scoreTotal   Int
+  createdAt    DateTime        @default(now())
+  answers      AttemptAnswer[]
+
+  @@index([quizId, createdAt])
+  @@index([userId])
+}
+
+model AttemptAnswer {
+  id           String       @id @default(cuid())
+  attemptId    String
+  attempt      QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  /// May be null if the question was later deleted/replaced
+  questionId   String?
+  questionText String
+  questionType QuestionType
+  /// boolean | string | string[]
+  userAnswer   Json
+  isCorrect    Boolean
+  order        Int          @default(0)
+
+  @@index([attemptId])
 }
