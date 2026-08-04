@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { hashPassword, verifyPassword } from '../lib/password';
+import { hashPassword, verifyPasswordOrDummy } from '../lib/password';
 import { signToken } from '../lib/jwt';
 import type { LoginInput, RegisterInput } from '../lib/validation';
 import { AppError } from '../middleware/errorHandler';
@@ -16,7 +16,8 @@ export async function register(data: RegisterInput) {
   const email = data.email.toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    throw new AppError('Email already registered', 409);
+    // Same wording as a generic failure — avoid confirming which emails exist.
+    throw new AppError('Unable to create account with these credentials', 409);
   }
 
   const passwordHash = await hashPassword(data.password);
@@ -35,12 +36,8 @@ export async function register(data: RegisterInput) {
 export async function login(data: LoginInput) {
   const email = data.email.toLowerCase();
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user?.passwordHash) {
-    throw new AppError('Invalid email or password', 401);
-  }
-
-  const ok = await verifyPassword(data.password, user.passwordHash);
-  if (!ok) {
+  const ok = await verifyPasswordOrDummy(data.password, user?.passwordHash);
+  if (!user || !ok) {
     throw new AppError('Invalid email or password', 401);
   }
 

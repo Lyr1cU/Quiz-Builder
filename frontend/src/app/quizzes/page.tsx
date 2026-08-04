@@ -80,43 +80,45 @@ export default function QuizzesPage() {
         }
       />
 
-      <div className="animate-in animate-in-delay-1 mb-6 mx-auto max-w-xl">
-        <label htmlFor="quiz-search" className="sr-only">
-          Search quizzes
-        </label>
-        <Input
-          id="quiz-search"
-          type="search"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search by title or description…"
-        />
-      </div>
-
-      {user && (
-        <div className="mb-6 flex justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => setFilter('all')}
-            className={cn(
-              'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-              filter === 'all' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
-            )}
-          >
-            Catalog
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter('mine')}
-            className={cn(
-              'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-              filter === 'mine' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
-            )}
-          >
-            My quizzes
-          </button>
+      <div className="animate-in animate-in-delay-1 mb-6 mx-auto max-w-xl space-y-6">
+        <div>
+          <label htmlFor="quiz-search" className="sr-only">
+            Search quizzes
+          </label>
+          <Input
+            id="quiz-search"
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by title or description…"
+          />
         </div>
-      )}
+
+        {user && (
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                filter === 'all' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
+              )}
+            >
+              Catalog
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter('mine')}
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                filter === 'mine' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
+              )}
+            >
+              My quizzes
+            </button>
+          </div>
+        )}
+      </div>
 
       {loading && (
         <p className="text-center text-sm text-white/80">

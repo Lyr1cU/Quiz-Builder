@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { QuestionReadonly } from '@/components/QuestionReadonly';
+import { useAuth } from '@/context/AuthContext';
 import { ApiError, api } from '@/services/api';
 import type { Quiz } from '@/types/quiz';
 
 export default function InviteQuizPage() {
   const params = useParams<{ token: string }>();
   const token = params.token;
+  const { user } = useAuth();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,13 +85,21 @@ export default function InviteQuizPage() {
             (invite)
           </p>
 
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href={`/quizzes/invite/${token}/play`}
               className="gold-btn inline-flex rounded-full px-6 py-3 text-sm font-semibold"
             >
               Start practice
             </Link>
+            {user && (
+              <Link
+                href={`/quizzes/${quiz.id}/attempts?invite=${encodeURIComponent(token)}`}
+                className="btn-motion inline-flex rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
+              >
+                My attempts
+              </Link>
+            )}
           </div>
 
           <div className="surface-card mt-8 overflow-hidden">

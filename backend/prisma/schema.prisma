@@ -40,6 +40,9 @@ model Quiz {
   createdAt   DateTime       @default(now())
   questions   Question[]
   attempts    QuizAttempt[]
+
+  @@index([ownerId])
+  @@index([createdAt])
 }
 
 model Question {
@@ -51,7 +54,7 @@ model Question {
   order         Int          @default(0)
   booleanAnswer Boolean?
   inputAnswer   String?
-  /// SINGLE/MULTIPLE options: [{ label, isCorrect }]
+  /// SINGLE/MULTIPLE options: [{ id, label, isCorrect }]
   options       Json?
 
   @@index([quizId])
@@ -81,10 +84,12 @@ model AttemptAnswer {
   questionId   String?
   questionText String
   questionType QuestionType
-  /// boolean | string | string[]
+  /// boolean | label | label[] — human-readable, not option ids
   userAnswer   Json
   isCorrect    Boolean
   order        Int          @default(0)
+  /// exact | ai | unavailable | skipped | error (null for pre-existing rows)
+  gradingMethod String?
 
   @@index([attemptId])
 }

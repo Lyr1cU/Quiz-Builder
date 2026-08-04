@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { createQuizSchema, updateQuizSchema } from '../lib/validation';
+import { createQuizSchema, listQuizzesQuerySchema, updateQuizSchema } from '../lib/validation';
 import { AppError } from '../middleware/errorHandler';
 import * as quizService from '../services/quizService';
 
@@ -31,8 +31,8 @@ export async function updateQuiz(req: Request, res: Response, next: NextFunction
 
 export async function listQuizzes(req: Request, res: Response, next: NextFunction) {
   try {
-    const raw = typeof req.query.q === 'string' ? req.query.q : undefined;
-    const quizzes = await quizService.listQuizzes(req.user?.id, raw);
+    const { q, limit } = listQuizzesQuerySchema.parse(req.query);
+    const quizzes = await quizService.listQuizzes(req.user?.id, q, limit);
     res.json(quizzes);
   } catch (err) {
     next(err);

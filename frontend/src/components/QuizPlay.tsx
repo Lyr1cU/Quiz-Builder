@@ -6,7 +6,13 @@ import { Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
-import type { CheckAnswerResult, PlayQuestion, PlayQuiz, SubmitAttemptInput } from '@/types/quiz';
+import {
+  isUnverifiedGrading,
+  type CheckAnswerResult,
+  type PlayQuestion,
+  type PlayQuiz,
+  type SubmitAttemptInput,
+} from '@/types/quiz';
 
 type Props = {
   quiz: PlayQuiz;
@@ -35,15 +41,36 @@ function emptyAnswer(question: PlayQuestion): AnswerState {
   }
 }
 
-function formatAnswer(value: boolean | string | string[] | null | undefined): string {
+function formatAnswer(
+  value: boolean | string | string[] | null | undefined,
+  question?: PlayQuestion,
+): string {
   if (value === null || value === undefined) return '—';
   if (typeof value === 'boolean') return value ? 'True' : 'False';
-  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (Array.isArray(value)) {
+    if (!value.length) return '—';
+    if (question?.options) {
+      const labels = value.map(
+        (id) => question.options!.find((o) => o.id === id)?.label ?? id,
+      );
+      return labels.join(', ');
+    }
+    return value.join(', ');
+  }
+  if (question?.options) {
+    return question.options.find((o) => o.id === value)?.label ?? value;
+  }
   return value || '—';
 }
 
 function optionLetter(index: number) {
   return String.fromCharCode(65 + index);
+}
+
+function unverifiedNotice(result: CheckAnswerResult): string {
+  return result.gradingMethod === 'skipped'
+    ? 'AI grading limit for this quiz was reached — this answer was not verified.'
+    : 'AI grading is temporarily unavailable — this answer was not verified.';
 }
 
 function LetterBadge({ letter, selected }: { letter: string; selected: boolean }) {
@@ -132,11 +159,13 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [unverifiedCount, setUnverifiedCount] = useState(0);
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [savedScore, setSavedScore] = useState<{ correct: number; total: number } | null>(null);
+  const [savedUnverified, setSavedUnverified] = useState<number | null>(null);
   const recordedRef = useRef<RecordedAnswer[]>([]);
 
   const question = questions[index];
@@ -144,6 +173,11 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
     () => ({ current: index + 1, total: questions.length }),
     [index, questions.length],
   );
+  const shownUnverified = savedUnverified ?? unverifiedCount;
+  // Invite guests cannot open the quiz by id, so keep the token on the history link.
+  const attemptsHref = inviteToken
+    ? `/quizzes/${quiz.id}/attempts?invite=${encodeURIComponent(inviteToken)}`
+    : '/my-attempts';
 
   function goToQuestion(nextIndex: number) {
     const next = questions[nextIndex];
@@ -206,6 +240,9 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
         correct: prev.correct + (check.isCorrect ? 1 : 0),
         total: prev.total + 1,
       }));
+      if (isUnverifiedGrading(check.gradingMethod)) {
+        setUnverifiedCount((prev) => prev + 1);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to check answer');
     } finally {
@@ -218,6 +255,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
     setSaveError(null);
     setSaved(false);
     setSavedScore(null);
+    setSavedUnverified(null);
 
     // Guests can practice, but history is only for signed-in users.
     if (!user) {
@@ -231,6 +269,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
         answers: recordedRef.current,
       });
       setSavedScore({ correct: attempt.scoreCorrect, total: attempt.scoreTotal });
+      setSavedUnverified(attempt.scoreUnverified ?? 0);
       setSaved(true);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save attempt');
@@ -269,6 +308,12 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
             {(savedScore ?? score).correct} / {(savedScore ?? score).total}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">correct answers</p>
+          {shownUnverified > 0 && (
+            <p className="mt-2 text-sm text-amber-700">
+              {shownUnverified} answer{shownUnverified === 1 ? '' : 's'} could not be verified by AI
+              grading and {shownUnverified === 1 ? 'was' : 'were'} not counted as correct.
+            </p>
+          )}
           {saving && (
             <p className="animate-feedback mt-3 text-sm text-muted-foreground">
               Saving your attempt…
@@ -277,7 +322,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
           {!saving && saved && (
             <p className="animate-feedback mt-3 text-sm text-emerald-700">
               Saved to{' '}
-              <Link href="/my-attempts" className="underline">
+              <Link href={attemptsHref} className="underline">
                 your attempt history
               </Link>
               .
@@ -300,9 +345,11 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
               onClick={() => {
                 setFinished(false);
                 setScore({ correct: 0, total: 0 });
+                setUnverifiedCount(0);
                 recordedRef.current = [];
                 setSaved(false);
                 setSavedScore(null);
+                setSavedUnverified(null);
                 setSaveError(null);
                 goToQuestion(0);
               }}
@@ -323,6 +370,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
   }
 
   const progressPct = Math.round((progress.current / Math.max(progress.total, 1)) * 100);
+  const resultUnverified = Boolean(result && isUnverifiedGrading(result.gradingMethod));
 
   return (
     <div className="mt-6">
@@ -383,16 +431,16 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
           {question.type === 'SINGLE' && Array.isArray(question.options) && (
             <ul className="flex flex-col gap-2">
               {question.options.map((opt, i) => {
-                const selected = answer.type === 'SINGLE' && answer.value === opt.label;
+                const selected = answer.type === 'SINGLE' && answer.value === opt.id;
                 return (
-                  <li key={opt.label}>
+                  <li key={opt.id}>
                     <ChoiceOptionButton
                       letter={optionLetter(i)}
                       label={opt.label}
                       selected={selected}
                       disabled={Boolean(result)}
                       mode="single"
-                      onClick={() => setAnswer({ type: 'SINGLE', value: opt.label })}
+                      onClick={() => setAnswer({ type: 'SINGLE', value: opt.id })}
                     />
                   </li>
                 );
@@ -403,9 +451,9 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
           {question.type === 'MULTIPLE' && Array.isArray(question.options) && (
             <ul className="flex flex-col gap-2">
               {question.options.map((opt, i) => {
-                const selected = answer.type === 'MULTIPLE' && answer.value.includes(opt.label);
+                const selected = answer.type === 'MULTIPLE' && answer.value.includes(opt.id);
                 return (
-                  <li key={opt.label}>
+                  <li key={opt.id}>
                     <ChoiceOptionButton
                       letter={optionLetter(i)}
                       label={opt.label}
@@ -415,8 +463,8 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
                       onClick={() => {
                         if (answer.type !== 'MULTIPLE') return;
                         const next = selected
-                          ? answer.value.filter((v) => v !== opt.label)
-                          : [...answer.value, opt.label];
+                          ? answer.value.filter((v) => v !== opt.id)
+                          : [...answer.value, opt.id];
                         setAnswer({ type: 'MULTIPLE', value: next });
                       }}
                     />
@@ -434,21 +482,24 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
               className={`animate-feedback rounded-xl px-4 py-3 text-sm ${
                 result.isCorrect
                   ? 'bg-emerald-50 text-emerald-800'
-                  : 'bg-red-50 text-destructive'
+                  : resultUnverified
+                    ? 'bg-amber-50 text-amber-800'
+                    : 'bg-red-50 text-destructive'
               }`}
             >
-              <p className="font-semibold">{result.isCorrect ? 'Correct!' : 'Incorrect'}</p>
+              <p className="font-semibold">
+                {result.isCorrect ? 'Correct!' : resultUnverified ? 'Not verified' : 'Incorrect'}
+              </p>
               {!result.isCorrect && (
-                <div className="mt-2 space-y-1 text-ink">
-                  <p>
+                <>
+                  <p className="mt-2 text-ink">
                     Your answer:{' '}
-                    <span className="font-medium">{formatAnswer(result.userAnswer)}</span>
+                    <span className="font-medium">
+                      {formatAnswer(result.userAnswer, question)}
+                    </span>
                   </p>
-                  <p>
-                    Correct answer:{' '}
-                    <span className="font-medium">{formatAnswer(result.correctAnswer)}</span>
-                  </p>
-                </div>
+                  {resultUnverified && <p className="mt-1">{unverifiedNotice(result)}</p>}
+                </>
               )}
             </div>
           )}

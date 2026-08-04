@@ -1,0 +1,27 @@
+{
+  "formatVersion": 1,
+  "title": "JavaScript Basics",
+  "description": "A short sample quiz imported from JSON.",
+  "visibility": "PRIVATE",
+  "questions": [
+    {
+      "type": "BOOLEAN",
+      "text": "JavaScript is a programming language.",
+      "booleanAnswer": true
+    },
+    {
+      "type": "SINGLE",
+      "text": "Which keyword declares a block-scoped variable?",
+      "options": [
+        { "label": "let", "isCorrect": true },
+        { "label": "var", "isCorrect": false },
+        { "label": "function", "isCorrect": false }
+      ]
+    },
+    {
+      "type": "INPUT",
+      "text": "What method converts a JSON string into an object?",
+      "inputAnswer": "JSON.parse"
+    }
+  ]
+}

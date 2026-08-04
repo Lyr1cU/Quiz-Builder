@@ -22,7 +22,7 @@ function slugify(title: string): string {
   );
 }
 
-async function loadQuizForExport(quizId: string, viewerId?: string) {
+async function loadQuizForExport(quizId: string, variant: PdfVariant, viewerId?: string) {
   const quiz = await prisma.quiz.findUnique({
     where: { id: quizId },
     include: { questions: { orderBy: { order: 'asc' } } },
@@ -33,6 +33,12 @@ async function loadQuizForExport(quizId: string, viewerId?: string) {
   }
 
   const isOwner = Boolean(viewerId && quiz.ownerId === viewerId);
+
+  // Answer keys are owner-only for every visibility (never public).
+  if (variant === 'answers' && !isOwner) {
+    throw new AppError('Only the owner can export the answer key', 403);
+  }
+
   if (quiz.visibility === 'PRIVATE' && !isOwner) {
     throw new AppError('Only the owner can export a private quiz', 403);
   }
@@ -116,7 +122,7 @@ export async function buildQuizPdf(
   variant: PdfVariant,
   viewerId?: string,
 ): Promise<{ buffer: Buffer; filename: string }> {
-  const quiz = await loadQuizForExport(quizId, viewerId);
+  const quiz = await loadQuizForExport(quizId, variant, viewerId);
 
   const buffer = await new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({

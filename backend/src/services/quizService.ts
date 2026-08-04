@@ -3,16 +3,19 @@ import { Prisma, QuizVisibility } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { CreateQuizInput, UpdateQuizInput } from '../lib/validation';
 import { AppError } from '../middleware/errorHandler';
-
-type ChoiceOption = { label: string; isCorrect?: boolean };
+import { optionsForPlay, parseOptions, withOptionIds } from './playService';
 
 function newInviteToken(): string {
   return randomBytes(24).toString('hex');
 }
 
-function parseOptions(options: Prisma.JsonValue | null): ChoiceOption[] | null {
-  if (!Array.isArray(options)) return null;
-  return options as ChoiceOption[];
+function questionOptionsJson(
+  q: CreateQuizInput['questions'][number],
+): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (q.type !== 'SINGLE' && q.type !== 'MULTIPLE') {
+    return Prisma.JsonNull;
+  }
+  return withOptionIds(q.options) as unknown as Prisma.InputJsonValue;
 }
 
 function stripQuestionAnswers<
@@ -27,7 +30,6 @@ function stripQuestionAnswers<
     options: Prisma.JsonValue | null;
   },
 >(question: T) {
-  const options = parseOptions(question.options);
   return {
     id: question.id,
     quizId: question.quizId,
@@ -36,7 +38,10 @@ function stripQuestionAnswers<
     order: question.order,
     booleanAnswer: null,
     inputAnswer: null,
-    options: options ? options.map((o) => ({ label: o.label })) : null,
+    options:
+      question.type === 'SINGLE' || question.type === 'MULTIPLE'
+        ? optionsForPlay(question.options)
+        : null,
   };
 }
 
@@ -103,10 +108,7 @@ export async function createQuiz(data: CreateQuizInput, ownerId: string) {
           order: q.order ?? index,
           booleanAnswer: q.type === 'BOOLEAN' ? q.booleanAnswer : null,
           inputAnswer: q.type === 'INPUT' ? q.inputAnswer : null,
-          options:
-            q.type === 'SINGLE' || q.type === 'MULTIPLE'
-              ? (q.options as Prisma.InputJsonValue)
-              : Prisma.JsonNull,
+          options: questionOptionsJson(q),
         })),
       },
     },
@@ -121,8 +123,9 @@ export async function createQuiz(data: CreateQuizInput, ownerId: string) {
   );
 }
 
-export async function listQuizzes(viewerId?: string, search?: string) {
+export async function listQuizzes(viewerId?: string, search?: string, limit = 50) {
   const q = search?.trim();
+  const take = Math.min(Math.max(limit, 1), 100);
   const visibilityWhere = viewerId
     ? {
         OR: [{ visibility: 'PUBLIC' as const }, { ownerId: viewerId }],
@@ -144,6 +147,7 @@ export async function listQuizzes(viewerId?: string, search?: string) {
         }
       : visibilityWhere,
     orderBy: { createdAt: 'desc' },
+    take,
     include: {
       _count: { select: { questions: true } },
     },
@@ -220,6 +224,18 @@ export async function updateQuiz(id: string, data: UpdateQuizInput, requesterId:
   }
 
   const quiz = await prisma.$transaction(async (tx) => {
+    const existingQuestions = await tx.question.findMany({
+      where: { quizId: id },
+      select: { id: true },
+    });
+    const oldIds = existingQuestions.map((q) => q.id);
+    if (oldIds.length > 0) {
+      // Detach attempt history before destroying questions (schema comment promise).
+      await tx.attemptAnswer.updateMany({
+        where: { questionId: { in: oldIds } },
+        data: { questionId: null },
+      });
+    }
     await tx.question.deleteMany({ where: { quizId: id } });
 
     return tx.quiz.update({
@@ -236,10 +252,7 @@ export async function updateQuiz(id: string, data: UpdateQuizInput, requesterId:
             order: q.order ?? index,
             booleanAnswer: q.type === 'BOOLEAN' ? q.booleanAnswer : null,
             inputAnswer: q.type === 'INPUT' ? q.inputAnswer : null,
-            options:
-              q.type === 'SINGLE' || q.type === 'MULTIPLE'
-                ? (q.options as Prisma.InputJsonValue)
-                : Prisma.JsonNull,
+            options: questionOptionsJson(q),
           })),
         },
       },

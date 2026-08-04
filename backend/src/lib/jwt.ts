@@ -18,6 +18,7 @@ function getSecret(): string {
 export function signToken(user: AuthUser): string {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
   return jwt.sign({ email: user.email }, getSecret(), {
+    algorithm: 'HS256',
     subject: user.id,
     expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
   });
@@ -25,7 +26,9 @@ export function signToken(user: AuthUser): string {
 
 export function verifyToken(token: string): AuthUser {
   try {
-    const payload = jwt.verify(token, getSecret()) as JwtPayload & { sub: string };
+    const payload = jwt.verify(token, getSecret(), {
+      algorithms: ['HS256'],
+    }) as JwtPayload & { sub: string };
     if (!payload.sub || !payload.email) {
       throw new AppError('Invalid token', 401);
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Download } from 'lucide-react';
 import { QuestionReadonly } from '@/components/QuestionReadonly';
@@ -18,6 +18,8 @@ import type { Quiz } from '@/types/quiz';
 
 export default function QuizDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite')?.trim() || undefined;
   const id = params.id;
   const { user } = useAuth();
 
@@ -38,7 +40,18 @@ export default function QuizDetailPage() {
       const data = await api.getQuiz(id);
       setQuiz(data);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
+      const missing = err instanceof ApiError && err.status === 404;
+      // Private quiz opened by an invited guest: the id route 404s, the token still works.
+      if (missing && inviteToken) {
+        try {
+          setQuiz(await api.getQuizByInvite(inviteToken));
+          return;
+        } catch {
+          setNotFound(true);
+          return;
+        }
+      }
+      if (missing) {
         setNotFound(true);
       } else {
         setError(err instanceof Error ? err.message : 'Failed to load quiz');
@@ -46,7 +59,7 @@ export default function QuizDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, inviteToken]);
 
   useEffect(() => {
     void load();
@@ -54,6 +67,10 @@ export default function QuizDetailPage() {
 
   const isOwner = Boolean(user && quiz && user.id === quiz.ownerId);
   const showAnswers = isOwner;
+  const inviteQuery = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
+  const playHref = inviteToken
+    ? `/quizzes/invite/${encodeURIComponent(inviteToken)}/play`
+    : `/quizzes/${id}/play`;
   const inviteUrl = useMemo(() => {
     if (!quiz?.inviteToken || typeof window === 'undefined') return null;
     return `${window.location.origin}/quizzes/invite/${quiz.inviteToken}`;
@@ -160,7 +177,7 @@ export default function QuizDetailPage() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href={`/quizzes/${quiz.id}/play`}
+              href={playHref}
               className="gold-btn inline-flex rounded-full px-6 py-3 text-sm font-semibold"
             >
               Start practice
@@ -175,7 +192,7 @@ export default function QuizDetailPage() {
             )}
             {user && (
               <Link
-                href={`/quizzes/${quiz.id}/attempts`}
+                href={`/quizzes/${quiz.id}/attempts${inviteQuery}`}
                 className="btn-motion inline-flex rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
               >
                 My attempts
@@ -201,12 +218,14 @@ export default function QuizDetailPage() {
                     >
                       Download worksheet PDF
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer rounded-lg px-3 py-2.5"
-                      onSelect={() => void downloadPdf('answers')}
-                    >
-                      Download answers PDF
-                    </DropdownMenuItem>
+                    {isOwner && (
+                      <DropdownMenuItem
+                        className="cursor-pointer rounded-lg px-3 py-2.5"
+                        onSelect={() => void downloadPdf('answers')}
+                      >
+                        Download answers PDF
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError, api } from '@/services/api';
@@ -17,8 +17,15 @@ function formatWhen(iso: string) {
 
 export default function QuizMyAttemptsPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite')?.trim() || undefined;
   const id = params.id;
   const { user, loading: authLoading } = useAuth();
+  // Invite guests have no access to the quiz by id, so carry the token through navigation.
+  const inviteQuery = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
+  const quizHref = inviteToken
+    ? `/quizzes/invite/${encodeURIComponent(inviteToken)}`
+    : `/quizzes/${id}`;
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [attempts, setAttempts] = useState<AttemptListItem[]>([]);
@@ -30,9 +37,11 @@ export default function QuizMyAttemptsPage() {
     setLoading(true);
     setError(null);
     try {
-      const quizData = await api.getQuiz(id);
+      const quizData = inviteToken
+        ? await api.getQuizByInvite(inviteToken)
+        : await api.getQuiz(id);
       setQuiz(quizData);
-      const list = await api.getAttempts(id);
+      const list = await api.getAttempts(id, inviteToken);
       setAttempts(list);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
@@ -43,7 +52,7 @@ export default function QuizMyAttemptsPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, user]);
+  }, [id, user, inviteToken]);
 
   useEffect(() => {
     if (!authLoading && user) void load();
@@ -67,7 +76,7 @@ export default function QuizMyAttemptsPage() {
   return (
     <div>
       <Link
-        href={`/quizzes/${id}`}
+        href={quizHref}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
         ← Back to quiz
@@ -98,7 +107,7 @@ export default function QuizMyAttemptsPage() {
           {attempts.map((attempt) => (
             <li key={attempt.id}>
               <Link
-                href={`/quizzes/${id}/attempts/${attempt.id}`}
+                href={`/quizzes/${id}/attempts/${attempt.id}${inviteQuery}`}
                 className="surface-card surface-card-interactive flex flex-wrap items-center justify-between gap-3 px-5 py-4"
               >
                 <p className="text-sm text-muted-foreground">{formatWhen(attempt.createdAt)}</p>

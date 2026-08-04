@@ -3,8 +3,11 @@ import type {
   AttemptListItem,
   CheckAnswerResult,
   CreateQuizInput,
+  GenerateQuizRequest,
   PlayQuiz,
   Quiz,
+  QuizDraftResponse,
+  QuizImportDraft,
   QuizListItem,
   SubmitAttemptInput,
 } from '@/types/quiz';
@@ -34,11 +37,19 @@ export type AuthResponse = {
 };
 
 const REQUEST_TIMEOUT_MS = 90_000;
+const GENERATE_TIMEOUT_MS = 120_000;
 
-async function request<T>(path: string, options?: RequestInit & { token?: string | null }): Promise<T> {
+async function request<T>(
+  path: string,
+  options?: RequestInit & { token?: string | null; timeoutMs?: number },
+): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const { token: explicitToken, ...init } = options || {};
+  const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const explicitToken = options?.token;
+  const init: RequestInit = { ...(options ?? {}) };
+  delete (init as { timeoutMs?: number }).timeoutMs;
+  delete (init as { token?: string | null }).token;
   const token = explicitToken === undefined ? getStoredToken() : explicitToken;
 
   try {
@@ -161,13 +172,27 @@ export const api = {
       body: JSON.stringify(body),
     }),
   getMyAttempts: () => request<AttemptListItem[]>('/attempts'),
-  getAttempts: (quizId: string) => request<AttemptListItem[]>(`/quizzes/${quizId}/attempts`),
+  getAttempts: (quizId: string, inviteToken?: string) => {
+    const q = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
+    return request<AttemptListItem[]>(`/quizzes/${quizId}/attempts${q}`);
+  },
   getAttempt: (quizId: string, attemptId: string) =>
     request<AttemptDetail>(`/quizzes/${quizId}/attempts/${attemptId}`),
   createQuiz: (body: CreateQuizInput) =>
     request<Quiz>('/quizzes', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+  validateQuizImport: (draft: QuizImportDraft) =>
+    request<QuizDraftResponse>('/quizzes/validate-import', {
+      method: 'POST',
+      body: JSON.stringify(draft),
+    }),
+  generateQuizFromText: (body: GenerateQuizRequest) =>
+    request<QuizDraftResponse>('/quizzes/generate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: GENERATE_TIMEOUT_MS,
     }),
   updateQuiz: (id: string, body: CreateQuizInput) =>
     request<Quiz>(`/quizzes/${id}`, {

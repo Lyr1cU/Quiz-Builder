@@ -39,3 +39,9 @@ coverage/
 # Misc
 .DS_Store
 *.pem
+
+# Local docs (not committed)
+docs/
+
+# Designs
+design/

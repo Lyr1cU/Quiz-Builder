@@ -2,6 +2,7 @@ export type QuestionType = 'BOOLEAN' | 'INPUT' | 'SINGLE' | 'MULTIPLE';
 export type QuizVisibility = 'PUBLIC' | 'PRIVATE';
 
 export type ChoiceOption = {
+  id?: string;
   label: string;
   isCorrect?: boolean;
 };
@@ -71,13 +72,58 @@ export type CreateQuizInput = {
   questions: CreateQuestionInput[];
 };
 
+export const QUIZ_FORMAT_VERSION = 1;
+
+export type QuizImportDraft = {
+  formatVersion: typeof QUIZ_FORMAT_VERSION;
+  title: string;
+  description?: string | null;
+  visibility?: QuizVisibility;
+  questions: CreateQuestionInput[];
+};
+
+export type QuestionValidationResult = {
+  index: number;
+  valid: boolean;
+  errors: string[];
+  question?: CreateQuestionInput;
+};
+
+export type QuizDraftValidation = {
+  meta: {
+    validCount: number;
+    invalidCount: number;
+    titleValid: boolean;
+    titleErrors: string[];
+    descriptionValid: boolean;
+    descriptionErrors: string[];
+  };
+  questions: QuestionValidationResult[];
+};
+
+export type QuizDraftResponse = {
+  draft: QuizImportDraft;
+  validation: QuizDraftValidation;
+};
+
+export type GenerateQuizPreferences = {
+  questionCount?: number;
+  types?: QuestionType[];
+  instructions?: string;
+};
+
+export type GenerateQuizRequest = {
+  sourceText: string;
+  preferences?: GenerateQuizPreferences;
+};
+
 export type PlayQuestion = {
   id: string;
   quizId: string;
   type: QuestionType;
   text: string;
   order: number;
-  options: { label: string }[] | null;
+  options: { id: string; label: string }[] | null;
 };
 
 export type PlayQuiz = {
@@ -88,13 +134,19 @@ export type PlayQuiz = {
   questions: PlayQuestion[];
 };
 
+/** `skipped` = AI budget ran out, `error` = AI call failed — neither is a real verdict. */
+export type GradingMethod = 'exact' | 'ai' | 'unavailable' | 'skipped' | 'error';
+
+export function isUnverifiedGrading(method?: GradingMethod | null): boolean {
+  return method === 'skipped' || method === 'error';
+}
+
 export type CheckAnswerResult = {
   questionId: string;
   type: QuestionType;
   isCorrect: boolean;
   userAnswer: boolean | string | string[];
-  correctAnswer: boolean | string | string[] | null;
-  gradingMethod?: 'exact' | 'ai' | 'fallback';
+  gradingMethod?: GradingMethod;
 };
 
 export type AttemptUser = {
@@ -118,14 +170,18 @@ export type AttemptAnswerItem = {
   questionId: string | null;
   questionText: string;
   questionType: QuestionType;
+  /** Human-readable: option labels, not ids. */
   userAnswer: boolean | string | string[];
   isCorrect: boolean;
   order: number;
+  gradingMethod?: GradingMethod | null;
 };
 
 export type AttemptDetail = AttemptListItem & {
   answers: AttemptAnswerItem[];
   quizTitle?: string;
+  /** Answers the grader could not verify (AI budget/outage). */
+  scoreUnverified?: number;
 };
 
 export type SubmitAttemptInput = {

@@ -35,7 +35,15 @@ export async function listAttemptsForQuiz(req: Request, res: Response, next: Nex
     if (!req.user) {
       throw new AppError('Authentication required', 401);
     }
-    const attempts = await attemptService.listMyAttemptsForQuiz(req.params.id, req.user.id);
+    const inviteToken =
+      typeof req.query.invite === 'string' && req.query.invite.trim()
+        ? req.query.invite.trim()
+        : undefined;
+    const attempts = await attemptService.listMyAttemptsForQuiz(
+      req.params.id,
+      req.user.id,
+      inviteToken,
+    );
     res.json(attempts);
   } catch (err) {
     next(err);

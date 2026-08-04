@@ -2,7 +2,34 @@ import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { SubmitAttemptInput } from '../lib/validation';
-import { checkQuestionAnswer, type CheckAnswerInput } from './playService';
+import {
+  assertCanAccessQuiz,
+  gradeLoadedQuestion,
+  type CheckAnswerInput,
+} from './playService';
+import { aiBudgetForInputs, isUnverifiedMethod, type GradeInputMethod } from './gradeInput';
+
+function mapAttemptAnswer(answer: {
+  id: string;
+  questionId: string | null;
+  questionText: string;
+  questionType: string;
+  userAnswer: Prisma.JsonValue;
+  isCorrect: boolean;
+  order: number;
+  gradingMethod: string | null;
+}) {
+  return {
+    id: answer.id,
+    questionId: answer.questionId,
+    questionText: answer.questionText,
+    questionType: answer.questionType,
+    userAnswer: answer.userAnswer,
+    isCorrect: answer.isCorrect,
+    order: answer.order,
+    gradingMethod: (answer.gradingMethod as GradeInputMethod | null) ?? null,
+  };
+}
 
 function mapAttemptListItem(attempt: {
   id: string;
@@ -32,6 +59,12 @@ export async function submitAttempt(
   data: SubmitAttemptInput,
   opts: { viewerId: string },
 ) {
+  // Access first — avoid leaking empty vs missing quiz.
+  await assertCanAccessQuiz(quizId, {
+    viewerId: opts.viewerId,
+    inviteToken: data.inviteToken,
+  });
+
   const questions = await prisma.question.findMany({
     where: { quizId },
     orderBy: { order: 'asc' },
@@ -56,21 +89,22 @@ export async function submitAttempt(
     }
   }
 
+  // One shared AI budget for the whole attempt (cache also dedupes check→submit).
+  const budget = aiBudgetForInputs(data.answers.filter((a) => a.type === 'INPUT').length);
   const graded = [];
   for (const a of data.answers) {
     const question = byId.get(a.questionId)!;
     const input = { type: a.type, answer: a.answer } as CheckAnswerInput;
-    const result = await checkQuestionAnswer(quizId, a.questionId, input, {
-      viewerId: opts.viewerId,
-      inviteToken: data.inviteToken,
-    });
+    const result = await gradeLoadedQuestion(question, input, budget);
     graded.push({
       questionId: question.id,
       questionText: question.text,
       questionType: question.type,
-      userAnswer: result.userAnswer as Prisma.InputJsonValue,
+      // Labels, not option ids — history must stay readable.
+      userAnswer: result.storedAnswer as Prisma.InputJsonValue,
       isCorrect: result.isCorrect,
       order: question.order,
+      gradingMethod: result.gradingMethod ?? null,
     });
   }
 
@@ -91,6 +125,7 @@ export async function submitAttempt(
           userAnswer: g.userAnswer,
           isCorrect: g.isCorrect,
           order: g.order,
+          gradingMethod: g.gradingMethod,
         })),
       },
     },
@@ -101,30 +136,26 @@ export async function submitAttempt(
     },
   });
 
+  const answers = attempt.answers.map(mapAttemptAnswer);
   return {
     ...mapAttemptListItem(attempt),
-    answers: attempt.answers.map((a) => ({
-      id: a.id,
-      questionId: a.questionId,
-      questionText: a.questionText,
-      questionType: a.questionType,
-      userAnswer: a.userAnswer,
-      isCorrect: a.isCorrect,
-      order: a.order,
-    })),
+    scoreUnverified: answers.filter((a) => isUnverifiedMethod(a.gradingMethod)).length,
+    answers,
   };
 }
 
 /** Attempts for the current user on one quiz. */
-export async function listMyAttemptsForQuiz(quizId: string, userId: string) {
-  const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
-  if (!quiz) {
-    throw new AppError('Quiz not found', 404);
-  }
+export async function listMyAttemptsForQuiz(
+  quizId: string,
+  userId: string,
+  inviteToken?: string,
+) {
+  await assertCanAccessQuiz(quizId, { viewerId: userId, inviteToken });
 
   const attempts = await prisma.quizAttempt.findMany({
     where: { quizId, userId },
     orderBy: { createdAt: 'desc' },
+    take: 100,
     include: {
       user: { select: { id: true, email: true, name: true } },
       quiz: { select: { id: true, title: true } },
@@ -139,6 +170,7 @@ export async function listMyAttempts(userId: string) {
   const attempts = await prisma.quizAttempt.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
+    take: 100,
     include: {
       user: { select: { id: true, email: true, name: true } },
       quiz: { select: { id: true, title: true } },
@@ -162,16 +194,10 @@ export async function getMyAttempt(quizId: string, attemptId: string, userId: st
     throw new AppError('Attempt not found', 404);
   }
 
+  const answers = attempt.answers.map(mapAttemptAnswer);
   return {
     ...mapAttemptListItem(attempt),
-    answers: attempt.answers.map((a) => ({
-      id: a.id,
-      questionId: a.questionId,
-      questionText: a.questionText,
-      questionType: a.questionType,
-      userAnswer: a.userAnswer,
-      isCorrect: a.isCorrect,
-      order: a.order,
-    })),
+    scoreUnverified: answers.filter((a) => isUnverifiedMethod(a.gradingMethod)).length,
+    answers,
   };
 }

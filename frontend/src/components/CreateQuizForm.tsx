@@ -13,167 +13,50 @@ import {
   type UseFormSetValue,
   type UseFormWatch,
 } from 'react-hook-form';
-import { z } from 'zod';
+import {
+  countValidQuestions,
+  draftToFormValues,
+  emptyQuestion,
+  formValuesToPayload,
+  formValuesToValidOnlyPayload,
+  quizFormSchema,
+  quizToFormValues,
+  type QuizFormValues,
+} from '@/lib/quizFormUtils';
 import { api } from '@/services/api';
-import type { CreateQuizInput, QuestionType, Quiz } from '@/types/quiz';
-
-const optionSchema = z.object({
-  label: z.string(),
-  isCorrect: z.boolean(),
-});
-
-const questionSchema = z
-  .object({
-    type: z.enum(['BOOLEAN', 'INPUT', 'SINGLE', 'MULTIPLE']),
-    text: z.string().trim().min(1, 'Question text is required'),
-    booleanAnswer: z.enum(['true', 'false']),
-    inputAnswer: z.string(),
-    options: z.array(optionSchema),
-  })
-  .superRefine((q, ctx) => {
-    if (q.type === 'INPUT' && q.inputAnswer.trim().length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Expected answer is required',
-        path: ['inputAnswer'],
-      });
-    }
-
-    if (q.type === 'SINGLE' || q.type === 'MULTIPLE') {
-      if (q.options.length < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Add at least 2 options',
-          path: ['options'],
-        });
-      }
-
-      q.options.forEach((opt, index) => {
-        if (opt.label.trim().length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Option label is required',
-            path: ['options', index, 'label'],
-          });
-        }
-      });
-
-      const correctCount = q.options.filter((o) => o.isCorrect).length;
-
-      if (q.type === 'SINGLE' && correctCount !== 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Mark exactly one option as correct',
-          path: ['options'],
-        });
-      }
-
-      if (q.type === 'MULTIPLE' && correctCount < 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Mark at least one option as correct',
-          path: ['options'],
-        });
-      }
-    }
-  });
-
-const formSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required'),
-  description: z.string().trim().max(500, 'Description must be 500 characters or less'),
-  visibility: z.enum(['PUBLIC', 'PRIVATE']),
-  questions: z.array(questionSchema).min(1, 'Add at least one question'),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-function emptyQuestion(): FormValues['questions'][number] {
-  return {
-    type: 'BOOLEAN',
-    text: '',
-    booleanAnswer: 'true',
-    inputAnswer: '',
-    options: [
-      { label: '', isCorrect: true },
-      { label: '', isCorrect: false },
-    ],
-  };
-}
-
-function quizToFormValues(quiz: Quiz): FormValues {
-  return {
-    title: quiz.title,
-    description: quiz.description ?? '',
-    visibility: quiz.visibility,
-    questions: quiz.questions.map((q) => {
-      const options =
-        q.options && q.options.length >= 2
-          ? q.options.map((o) => ({
-              label: o.label,
-              isCorrect: Boolean(o.isCorrect),
-            }))
-          : [
-              { label: '', isCorrect: true },
-              { label: '', isCorrect: false },
-            ];
-
-      return {
-        type: q.type,
-        text: q.text,
-        booleanAnswer: q.booleanAnswer === false ? 'false' : 'true',
-        inputAnswer: q.inputAnswer ?? '',
-        options,
-      };
-    }),
-  };
-}
-
-function toPayload(values: FormValues): CreateQuizInput {
-  const description = values.description.trim();
-  return {
-    title: values.title.trim(),
-    description: description || null,
-    visibility: values.visibility,
-    questions: values.questions.map((q, order) => {
-      if (q.type === 'BOOLEAN') {
-        return {
-          type: 'BOOLEAN',
-          text: q.text.trim(),
-          booleanAnswer: q.booleanAnswer === 'true',
-          order,
-        };
-      }
-      if (q.type === 'INPUT') {
-        return {
-          type: 'INPUT',
-          text: q.text.trim(),
-          inputAnswer: q.inputAnswer.trim(),
-          order,
-        };
-      }
-      return {
-        type: q.type,
-        text: q.text.trim(),
-        options: q.options.map((o) => ({
-          label: o.label.trim(),
-          isCorrect: o.isCorrect,
-        })),
-        order,
-      };
-    }),
-  };
-}
+import type { QuestionType, Quiz, QuizDraftValidation } from '@/types/quiz';
 
 type Props =
   | { mode?: 'create' }
-  | { mode: 'edit'; quiz: Quiz };
+  | { mode: 'edit'; quiz: Quiz }
+  | {
+      mode: 'import';
+      initialValues: QuizFormValues;
+      importValidation: QuizDraftValidation;
+      onCancel: () => void;
+    };
 
 export function CreateQuizForm(props: Props) {
-  const mode = props.mode === 'edit' ? 'edit' : 'create';
+  const mode = props.mode === 'edit' ? 'edit' : props.mode === 'import' ? 'import' : 'create';
   const quiz = props.mode === 'edit' ? props.quiz : null;
+  const importValidation = props.mode === 'import' ? props.importValidation : null;
+  const onCancel = props.mode === 'import' ? props.onCancel : undefined;
+
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const defaultValues: QuizFormValues =
+    props.mode === 'import'
+      ? props.initialValues
+      : quiz
+        ? quizToFormValues(quiz)
+        : {
+            title: '',
+            description: '',
+            visibility: 'PUBLIC',
+            questions: [emptyQuestion()],
+          };
 
   const {
     register,
@@ -181,17 +64,11 @@ export function CreateQuizForm(props: Props) {
     handleSubmit,
     watch,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: quiz
-      ? quizToFormValues(quiz)
-      : {
-          title: '',
-          description: '',
-          visibility: 'PUBLIC',
-          questions: [emptyQuestion()],
-        },
+  } = useForm<QuizFormValues>({
+    resolver: zodResolver(quizFormSchema),
+    defaultValues,
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -200,17 +77,24 @@ export function CreateQuizForm(props: Props) {
   });
 
   const questions = watch('questions');
+  const title = watch('title');
+  const description = watch('description');
+  const visibility = watch('visibility');
+  const liveValidCount = countValidQuestions({ title, description, visibility, questions });
 
-  async function onSubmit(values: FormValues) {
+  async function saveQuiz(payload: ReturnType<typeof formValuesToPayload>) {
+    const saved =
+      mode === 'edit' && quiz
+        ? await api.updateQuiz(quiz.id, payload)
+        : await api.createQuiz(payload);
+    router.push(`/quizzes/${saved.id}`);
+  }
+
+  async function onSubmit(values: QuizFormValues) {
     setSubmitError(null);
     setValidationError(null);
     try {
-      const payload = toPayload(values);
-      const saved =
-        mode === 'edit' && quiz
-          ? await api.updateQuiz(quiz.id, payload)
-          : await api.createQuiz(payload);
-      router.push(`/quizzes/${saved.id}`);
+      await saveQuiz(formValuesToPayload(values));
     } catch (err) {
       setSubmitError(
         err instanceof Error
@@ -222,6 +106,22 @@ export function CreateQuizForm(props: Props) {
     }
   }
 
+  async function onPartialCreate() {
+    setSubmitError(null);
+    setValidationError(null);
+    const values = getValues();
+    const payload = formValuesToValidOnlyPayload(values);
+    if (!payload) {
+      setValidationError('Fix the quiz title and add at least one valid question.');
+      return;
+    }
+    try {
+      await saveQuiz(payload);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to create quiz');
+    }
+  }
+
   function onInvalid() {
     setValidationError(
       mode === 'edit'
@@ -230,11 +130,32 @@ export function CreateQuizForm(props: Props) {
     );
   }
 
+  const importInvalidCount = importValidation?.meta.invalidCount ?? 0;
+  const showPartialCreate =
+    mode === 'import' && importInvalidCount > 0 && liveValidCount > 0;
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit, onInvalid)}
       className="animate-in animate-in-delay-1 flex flex-col gap-8"
     >
+      {mode === 'import' && importValidation && (
+        <div className="surface-card space-y-2 px-5 py-4 text-sm text-[var(--ink)]">
+          <p className="font-semibold">Import preview</p>
+          <p className="text-muted-foreground">
+            {importValidation.meta.validCount} of {importValidation.questions.length} questions
+            passed validation.
+            {importValidation.meta.invalidCount > 0 &&
+              ' Fix errors below, or create a quiz from valid questions only.'}
+          </p>
+          {!importValidation.meta.titleValid && importValidation.meta.titleErrors.length > 0 && (
+            <p className="text-[var(--danger)]">
+              Title: {importValidation.meta.titleErrors.join('; ')}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="surface-card flex flex-col gap-6 px-5 py-7 sm:px-7">
         <div>
           <label htmlFor="title" className="mb-2 block text-sm font-semibold text-ink">
@@ -310,12 +231,19 @@ export function CreateQuizForm(props: Props) {
         {fields.map((field, index) => {
           const type = (questions?.[index]?.type || 'BOOLEAN') as QuestionType;
           const qErrors = errors.questions?.[index];
+          const importQErrors =
+            importValidation && !importValidation.questions[index]?.valid
+              ? importValidation.questions[index]?.errors
+              : undefined;
 
           return (
             <fieldset key={field.id} className="surface-card stagger-item overflow-hidden">
               <div className="flex items-center justify-between bg-[#e8dfd0] px-5 py-3">
                 <legend className="text-sm font-semibold text-[var(--ink)]">
                   Question {index + 1}
+                  {importQErrors?.length ? (
+                    <span className="ml-2 font-normal text-[var(--danger)]">(needs fix)</span>
+                  ) : null}
                 </legend>
                 {fields.length > 1 && (
                   <button
@@ -327,6 +255,16 @@ export function CreateQuizForm(props: Props) {
                   </button>
                 )}
               </div>
+
+              {importQErrors && importQErrors.length > 0 && (
+                <div className="border-b border-[var(--line)] bg-red-50 px-5 py-3 text-sm text-[var(--danger)]">
+                  <ul className="list-inside list-disc space-y-0.5">
+                    {importQErrors.map((msg) => (
+                      <li key={msg}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="space-y-4 px-5 py-5">
                 <div className="max-w-xs">
@@ -428,28 +366,53 @@ export function CreateQuizForm(props: Props) {
         </p>
       )}
 
-      <div className="flex flex-col items-stretch justify-between gap-4 pt-2 sm:flex-row sm:items-center">
-        <button
-          type="button"
-          onClick={() => append(emptyQuestion())}
-          className="btn-motion inline-flex h-12 items-center justify-center gap-2 rounded-full border-2 border-secondary bg-white px-8 text-sm font-bold text-secondary shadow-md hover:bg-secondary hover:text-white"
-        >
-          <Plus className="size-4" strokeWidth={2.5} aria-hidden />
-          Add question
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="gold-btn h-12 w-full rounded-full px-10 text-sm font-bold sm:w-auto sm:min-w-[12rem]"
-        >
-          {isSubmitting
-            ? mode === 'edit'
-              ? 'Saving…'
-              : 'Creating…'
-            : mode === 'edit'
-              ? 'Save changes'
-              : 'Create quiz'}
-        </button>
+      <div className="flex flex-col items-stretch justify-between gap-4 pt-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => append(emptyQuestion())}
+            className="btn-motion inline-flex h-12 items-center justify-center gap-2 rounded-full border-2 border-secondary bg-white px-8 text-sm font-bold text-secondary shadow-md hover:bg-secondary hover:text-white"
+          >
+            <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+            Add question
+          </button>
+          {mode === 'import' && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-12 items-center justify-center rounded-full border border-white/40 bg-white/10 px-8 text-sm font-semibold text-white hover:bg-white/20"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {showPartialCreate && (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => void onPartialCreate()}
+              className="h-12 rounded-full border-2 border-white bg-white/95 px-8 text-sm font-bold text-secondary hover:bg-white disabled:opacity-50"
+            >
+              {isSubmitting
+                ? 'Creating…'
+                : `Create with ${liveValidCount} valid question${liveValidCount === 1 ? '' : 's'}`}
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={isSubmitting || (mode === 'import' && liveValidCount === 0)}
+            className="gold-btn h-12 w-full rounded-full px-10 text-sm font-bold sm:w-auto sm:min-w-[12rem] disabled:opacity-50"
+          >
+            {isSubmitting
+              ? mode === 'edit'
+                ? 'Saving…'
+                : 'Creating…'
+              : mode === 'edit'
+                ? 'Save changes'
+                : 'Create quiz'}
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -466,11 +429,11 @@ function ChoiceOptions({
 }: {
   questionIndex: number;
   mode: 'single' | 'multiple';
-  control: Control<FormValues>;
-  register: UseFormRegister<FormValues>;
-  setValue: UseFormSetValue<FormValues>;
-  watch: UseFormWatch<FormValues>;
-  questionErrors?: FieldErrors<FormValues['questions'][number]>;
+  control: Control<QuizFormValues>;
+  register: UseFormRegister<QuizFormValues>;
+  setValue: UseFormSetValue<QuizFormValues>;
+  watch: UseFormWatch<QuizFormValues>;
+  questionErrors?: FieldErrors<QuizFormValues['questions'][number]>;
 }) {
   const errorMessage =
     questionErrors?.options?.message || questionErrors?.options?.root?.message || undefined;

@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError, api } from '@/services/api';
-import type { AttemptDetail } from '@/types/quiz';
+import { isUnverifiedGrading, type AttemptDetail } from '@/types/quiz';
 
 function formatWhen(iso: string) {
   try {
@@ -24,8 +24,13 @@ function formatAnswer(value: boolean | string | string[] | null | undefined): st
 
 export default function AttemptDetailPage() {
   const params = useParams<{ id: string; attemptId: string }>();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite')?.trim() || undefined;
   const { id, attemptId } = params;
   const { user, loading: authLoading } = useAuth();
+  const attemptsHref = inviteToken
+    ? `/quizzes/${id}/attempts?invite=${encodeURIComponent(inviteToken)}`
+    : `/quizzes/${id}/attempts`;
 
   const [attempt, setAttempt] = useState<AttemptDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,10 +75,15 @@ export default function AttemptDetailPage() {
     );
   }
 
+  const unverifiedCount =
+    attempt?.scoreUnverified ??
+    attempt?.answers.filter((a) => !a.isCorrect && isUnverifiedGrading(a.gradingMethod)).length ??
+    0;
+
   return (
     <div>
       <Link
-        href={`/quizzes/${id}/attempts`}
+        href={attemptsHref}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
         ← Back to my attempts
@@ -102,29 +112,49 @@ export default function AttemptDetailPage() {
           <p className="mt-2 text-sm text-white/70">
             {formatWhen(attempt.createdAt)} · {attempt.scoreCorrect}/{attempt.scoreTotal} correct
           </p>
+          {unverifiedCount > 0 && (
+            <p className="mt-2 text-sm text-amber-200">
+              {unverifiedCount} answer{unverifiedCount === 1 ? '' : 's'} could not be verified by AI
+              grading and {unverifiedCount === 1 ? 'was' : 'were'} not counted as correct.
+            </p>
+          )}
 
           <ul className="mt-8 space-y-4">
-            {attempt.answers.map((a, index) => (
-              <li key={a.id} className="surface-card overflow-hidden">
-                <div className="flex items-center justify-between bg-[#e8dfd0] px-5 py-3">
-                  <p className="text-sm font-semibold text-[var(--ink)]">Question {index + 1}</p>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      a.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {a.isCorrect ? 'Correct' : 'Incorrect'}
-                  </span>
-                </div>
-                <div className="space-y-2 px-5 py-4 text-sm text-[var(--ink)]">
-                  <p className="font-medium">{a.questionText}</p>
-                  <p className="text-muted-foreground">
-                    Your answer:{' '}
-                    <span className="text-[var(--ink)]">{formatAnswer(a.userAnswer)}</span>
-                  </p>
-                </div>
-              </li>
-            ))}
+            {attempt.answers.map((a, index) => {
+              const unverified = !a.isCorrect && isUnverifiedGrading(a.gradingMethod);
+              return (
+                <li key={a.id} className="surface-card overflow-hidden">
+                  <div className="flex items-center justify-between bg-[#e8dfd0] px-5 py-3">
+                    <p className="text-sm font-semibold text-[var(--ink)]">Question {index + 1}</p>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        a.isCorrect
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : unverified
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {a.isCorrect ? 'Correct' : unverified ? 'Not verified' : 'Incorrect'}
+                    </span>
+                  </div>
+                  <div className="space-y-2 px-5 py-4 text-sm text-[var(--ink)]">
+                    <p className="font-medium">{a.questionText}</p>
+                    <p className="text-muted-foreground">
+                      Your answer:{' '}
+                      <span className="text-[var(--ink)]">{formatAnswer(a.userAnswer)}</span>
+                    </p>
+                    {unverified && (
+                      <p className="text-amber-700">
+                        {a.gradingMethod === 'skipped'
+                          ? 'AI grading limit for this attempt was reached — this answer was not verified.'
+                          : 'AI grading was unavailable — this answer was not verified.'}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

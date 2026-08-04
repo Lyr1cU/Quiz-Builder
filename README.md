@@ -146,6 +146,8 @@ npm run seed
 | `POST` | `/auth/logout` | Client should discard JWT (`204`) |
 | `GET` | `/auth/me` | Current user (Bearer JWT) |
 | `POST` | `/quizzes` | Create quiz (`visibility` PUBLIC\|PRIVATE, **auth**) |
+| `POST` | `/quizzes/validate-import` | Validate import/generate draft JSON (`formatVersion: 1`, **auth**) |
+| `POST` | `/quizzes/generate` | Generate quiz draft from study text via Groq (**auth**, rate limited) |
 | `PUT` | `/quizzes/:id` | Update own quiz (full replace of questions, **auth**) |
 | `GET` | `/quizzes` | Public quizzes + own private (if logged in). Optional `?q=` search (title/description) |
 | `GET` | `/quizzes/invite/:token` | Quiz via invite (**no answers**) |
@@ -153,7 +155,7 @@ npm run seed
 | `DELETE` | `/quizzes/:id/invite` | Revoke invite (owner) |
 | `GET` | `/quizzes/:id/play` | Play payload without answers (`?invite=` for private) |
 | `GET` | `/quizzes/invite/:token/play` | Play payload via invite |
-| `POST` | `/quizzes/:id/questions/:questionId/check` | Grade one answer (returns verdict + correct answer) |
+| `POST` | `/quizzes/:id/questions/:questionId/check` | Grade one answer (returns `isCorrect` only — no answer key) |
 | `POST` | `/quizzes/:id/attempts` | Save finished practice attempt (**auth required**; guests do not save) |
 | `GET` | `/attempts` | Current user’s attempts across quizzes (**auth**) |
 | `GET` | `/quizzes/:id/attempts` | Current user’s attempts for this quiz (**auth**) |
