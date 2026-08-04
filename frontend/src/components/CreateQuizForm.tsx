@@ -15,7 +15,6 @@ import {
 } from 'react-hook-form';
 import {
   countValidQuestions,
-  draftToFormValues,
   emptyQuestion,
   formValuesToPayload,
   formValuesToValidOnlyPayload,
