@@ -43,5 +43,6 @@ coverage/
 # Local docs (not committed)
 docs/
 
-# Designs
+# Designs (Stitch mocks stay local)
 design/
+DESIGN.md
