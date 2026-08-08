@@ -29,11 +29,17 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    console.error('[Prisma]', err.code, err.meta);
     if (err.code === 'P2002') {
       return res.status(409).json({ error: 'A record with this value already exists' });
     }
     if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Record not found' });
+    }
+    if (err.code === 'P2021' || err.code === 'P2022') {
+      return res.status(503).json({
+        error: 'Service temporarily unavailable. Please try again later.',
+      });
     }
   }
 

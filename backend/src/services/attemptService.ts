@@ -75,7 +75,10 @@ export async function submitAttempt(
 
   const byId = new Map(questions.map((q) => [q.id, q]));
   if (data.answers.length !== questions.length) {
-    throw new AppError('Submit an answer for every question', 400);
+    throw new AppError(
+      `Submit an answer for every question (sent ${data.answers.length}, quiz has ${questions.length})`,
+      400,
+    );
   }
 
   const seen = new Set<string>();

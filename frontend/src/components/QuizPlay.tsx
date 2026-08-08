@@ -231,17 +231,20 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
             : body.type === 'SINGLE'
               ? { questionId: question.id, type: 'SINGLE', answer: body.answer }
               : { questionId: question.id, type: 'MULTIPLE', answer: body.answer };
+      const alreadyRecorded = recordedRef.current.some((a) => a.questionId === question.id);
       recordedRef.current = [
         ...recordedRef.current.filter((a) => a.questionId !== question.id),
         recorded,
       ];
 
-      setScore((prev) => ({
-        correct: prev.correct + (check.isCorrect ? 1 : 0),
-        total: prev.total + 1,
-      }));
-      if (isUnverifiedGrading(check.gradingMethod)) {
-        setUnverifiedCount((prev) => prev + 1);
+      if (!alreadyRecorded) {
+        setScore((prev) => ({
+          correct: prev.correct + (check.isCorrect ? 1 : 0),
+          total: prev.total + 1,
+        }));
+        if (isUnverifiedGrading(check.gradingMethod)) {
+          setUnverifiedCount((prev) => prev + 1);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to check answer');
@@ -262,11 +265,19 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
       return;
     }
 
+    const recorded = recordedRef.current;
+    if (recorded.length !== questions.length) {
+      setSaveError(
+        `Could not save: answered ${recorded.length} of ${questions.length} questions. Check each question before finishing.`,
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const attempt = await api.submitAttempt(quiz.id, {
-        inviteToken,
-        answers: recordedRef.current,
+        ...(inviteToken ? { inviteToken } : {}),
+        answers: recorded,
       });
       setSavedScore({ correct: attempt.scoreCorrect, total: attempt.scoreTotal });
       setSavedUnverified(attempt.scoreUnverified ?? 0);

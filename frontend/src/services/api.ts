@@ -38,6 +38,7 @@ export type AuthResponse = {
 
 const REQUEST_TIMEOUT_MS = 90_000;
 const GENERATE_TIMEOUT_MS = 120_000;
+const SUBMIT_ATTEMPT_TIMEOUT_MS = 180_000;
 
 async function request<T>(
   path: string,
@@ -170,6 +171,7 @@ export const api = {
     request<AttemptDetail>(`/quizzes/${quizId}/attempts`, {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: SUBMIT_ATTEMPT_TIMEOUT_MS,
     }),
   getMyAttempts: () => request<AttemptListItem[]>('/attempts'),
   getAttempts: (quizId: string, inviteToken?: string) => {
