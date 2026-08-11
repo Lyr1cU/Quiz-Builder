@@ -41,7 +41,9 @@ export default function InvitePlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, tp]);
+    // Intentionally omit `tp`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
     <div>

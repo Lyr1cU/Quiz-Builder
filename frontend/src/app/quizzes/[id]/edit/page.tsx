@@ -45,7 +45,9 @@ export default function EditQuizPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, user, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user]);
 
   useEffect(() => {
     if (!authLoading && !user) {

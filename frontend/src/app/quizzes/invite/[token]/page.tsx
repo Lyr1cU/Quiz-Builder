@@ -47,7 +47,9 @@ export default function InviteQuizPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
     <div>

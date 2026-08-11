@@ -44,7 +44,9 @@ export default function QuizzesPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   useEffect(() => {
     void load();

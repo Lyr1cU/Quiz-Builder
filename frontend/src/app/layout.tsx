@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Source_Sans_3 } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { AnimatedMain } from '@/components/AnimatedMain';
+import { LocaleEnterReplay } from '@/components/LocaleEnterReplay';
 import { Nav } from '@/components/Nav';
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
@@ -39,9 +40,12 @@ export default async function RootLayout({
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
+            <LocaleEnterReplay />
             <div className="page-shell">
               <Nav />
-              <AnimatedMain>{children}</AnimatedMain>
+              <div className="page-scroll">
+                <AnimatedMain>{children}</AnimatedMain>
+              </div>
             </div>
             <Toaster richColors position="top-center" />
           </AuthProvider>

@@ -58,7 +58,9 @@ export default function QuizMyAttemptsPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, user, inviteToken, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user, inviteToken]);
 
   useEffect(() => {
     if (!authLoading && user) void load();

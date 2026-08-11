@@ -40,7 +40,9 @@ export default function QuizPlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, tp]);
+    // Intentionally omit `tp`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return (
     <div>

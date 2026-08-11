@@ -4,12 +4,23 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { Menu, UserRound, X } from 'lucide-react';
+import { ChevronRight, UserRound } from 'lucide-react';
 import { BrandMark } from '@/components/BrandMark';
+import { BurgerButton } from '@/components/BurgerButton';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+
+function pathHasSegment(pathname: string, segment: string) {
+  return pathname.split('/').includes(segment);
+}
 
 function NavLink({
   href,
@@ -28,27 +39,130 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'border-b-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap',
-        active
-          ? 'border-[var(--gold-from)] font-semibold text-[var(--gold-from)]'
-          : 'border-transparent text-white/75 hover:text-white',
+        'nav-link group relative inline-flex h-9 flex-col items-center justify-center',
         className,
       )}
     >
-      {children}
+      <span
+        className={cn(
+          'nav-link-label whitespace-nowrap text-sm transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          active
+            ? '-translate-y-1 font-semibold text-[var(--gold-from)]'
+            : 'translate-y-0 font-medium text-white/75 group-hover:text-white',
+        )}
+      >
+        {children}
+      </span>
+      <span
+        aria-hidden
+        className={cn(
+          'nav-link-indicator absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[var(--gold-from)] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          active ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0',
+        )}
+      />
     </Link>
+  );
+}
+
+function MobileNavPill({
+  href,
+  active,
+  children,
+  onClick,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'mobile-nav-pill',
+        active ? 'mobile-nav-pill--active gold-btn' : 'mobile-nav-pill--ghost',
+      )}
+    >
+      <span>{children}</span>
+      {active ? (
+        <ChevronRight
+          className="mobile-nav-pill__arrow size-4 shrink-0"
+          strokeWidth={2}
+          aria-hidden
+        />
+      ) : null}
+    </Link>
+  );
+}
+
+const LOGOUT_MENU_CONTENT_CLASS =
+  'min-w-[10.5rem] rounded-xl border border-[var(--line)] bg-white p-1.5 shadow-lg';
+
+function UserMenu({
+  variant,
+  onLogout,
+  logOutLabel,
+}: {
+  variant: 'desktop' | 'mobile';
+  onLogout?: () => void;
+  logOutLabel: string;
+}) {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+
+  const label = user.name || user.email;
+  const initial = (label || '?').charAt(0).toUpperCase();
+
+  return (
+    /* Non-modal: avoids scrollbar gutter shift that nudges the fixed header. */
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        {variant === 'mobile' ? (
+          <button type="button" className="mobile-nav-user-chip">
+            <span className="mobile-nav-user-avatar" aria-hidden>
+              {initial}
+            </span>
+            <span className="truncate">{label}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="inline-flex max-w-[10rem] items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+          >
+            <UserRound className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+            <span className="truncate">{label}</span>
+          </button>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={8} className={LOGOUT_MENU_CONTENT_CLASS}>
+        <DropdownMenuItem
+          variant="destructive"
+          className="cursor-pointer rounded-lg px-3 py-2 text-sm font-medium"
+          onClick={() => {
+            onLogout?.();
+            void logout();
+          }}
+        >
+          {logOutLabel}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 export function Nav() {
   const t = useTranslations('nav');
   const pathname = usePathname();
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const createActive = pathname.startsWith('/create') || pathname.includes('/edit');
+  const onEditRoute = pathHasSegment(pathname, 'edit');
+  const createActive = pathname.startsWith('/create') || onEditRoute;
   const quizzesActive =
-    (pathname === '/quizzes' || pathname.startsWith('/quizzes/')) && !pathname.includes('/edit');
+    (pathname === '/quizzes' || pathname.startsWith('/quizzes/')) && !onEditRoute;
   const attemptsActive = pathname.startsWith('/my-attempts');
   const isLanding = pathname === '/';
 
@@ -69,8 +183,27 @@ export function Nav() {
     setMenuOpen(false);
   }
 
+  function toggleMenu() {
+    setMenuOpen((open) => !open);
+  }
+
+  const mobileLinks = [
+    ...(user
+      ? [{ href: '/create', active: createActive, label: t('createQuiz') }]
+      : []),
+    { href: '/quizzes', active: quizzesActive, label: t('quizzes') },
+    ...(user
+      ? [{ href: '/my-attempts', active: attemptsActive, label: t('myAttempts') }]
+      : []),
+  ];
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[var(--navy)]/90 shadow-sm backdrop-blur-md">
+    <header
+      className={cn(
+        'relative z-50 shrink-0 border-b border-white/10 bg-[var(--navy)]/90 shadow-sm backdrop-blur-md transition-[border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        menuOpen && 'max-md:rounded-b-[1.75rem] max-md:border-b-0 max-md:shadow-lg',
+      )}
+    >
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link
           href={user || isLanding ? '/quizzes' : '/'}
@@ -99,23 +232,10 @@ export function Nav() {
           )}
         </nav>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <LocaleSwitcher />
           {!loading && user && (
-            <>
-              <span className="inline-flex max-w-[10rem] items-center gap-2 truncate text-sm text-white/75">
-                <UserRound className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-                <span className="truncate">{user.name || user.email}</span>
-              </span>
-              <span className="h-4 w-px bg-white/25" aria-hidden />
-              <button
-                type="button"
-                onClick={() => void logout()}
-                className="whitespace-nowrap text-sm font-medium text-white/75 transition-colors hover:text-white"
-              >
-                {t('logOut')}
-              </button>
-            </>
+            <UserMenu variant="desktop" logOutLabel={t('logOut')} />
           )}
           {!loading && !user && (
             <>
@@ -134,89 +254,66 @@ export function Nav() {
           )}
         </div>
 
-        <button
-          type="button"
-          className="inline-flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 md:hidden"
-          aria-expanded={menuOpen}
+        <BurgerButton
+          open={menuOpen}
+          onClick={toggleMenu}
+          label={menuOpen ? t('closeMenu') : t('openMenu')}
           aria-controls="mobile-nav"
-          aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-        </button>
+        />
       </div>
 
-      {menuOpen && (
-        <div
-          id="mobile-nav"
-          className="animate-in border-t border-white/10 bg-[var(--navy)]/95 px-4 py-4 backdrop-blur-md md:hidden"
-        >
-          <nav className="flex flex-col gap-4">
-            {user && (
-              <NavLink href="/create" active={createActive} onClick={closeMenu} className="w-fit">
-                {t('createQuiz')}
-              </NavLink>
-            )}
-            <NavLink href="/quizzes" active={quizzesActive} onClick={closeMenu} className="w-fit">
-              {t('quizzes')}
-            </NavLink>
-            {user && (
-              <NavLink
-                href="/my-attempts"
-                active={attemptsActive}
+      <div
+        id="mobile-nav"
+        className="mobile-nav-sheet md:hidden"
+        data-open={menuOpen}
+        aria-hidden={!menuOpen}
+        {...(!menuOpen ? { inert: true } : {})}
+      >
+        <div className="mobile-nav-sheet__inner">
+          <nav className="flex flex-col gap-3 px-4 pt-1">
+            {mobileLinks.map((item) => (
+              <MobileNavPill
+                key={item.href}
+                href={item.href}
+                active={item.active}
                 onClick={closeMenu}
-                className="w-fit"
               >
-                {t('myAttempts')}
-              </NavLink>
-            )}
-          </nav>
+                {item.label}
+              </MobileNavPill>
+            ))}
 
-          <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4">
-            <LocaleSwitcher className="mb-1" />
-            {!loading && user && (
-              <>
-                <span className="inline-flex items-center gap-2 text-sm text-white/75">
-                  <UserRound className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-                  <span className="truncate">{user.name || user.email}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeMenu();
-                    void logout();
-                  }}
-                  className="w-fit text-sm font-medium text-white/75 transition-colors hover:text-white"
-                >
-                  {t('logOut')}
-                </button>
-              </>
-            )}
             {!loading && !user && (
-              <div className="flex flex-wrap items-center gap-3">
-                <NavLink
+              <>
+                <MobileNavPill
                   href="/login"
                   active={pathname.startsWith('/login')}
                   onClick={closeMenu}
-                  className="w-fit"
                 >
                   {t('logIn')}
-                </NavLink>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full bg-white/10 px-3 text-white hover:bg-white/15 hover:text-white"
+                </MobileNavPill>
+                <Link
+                  href="/register"
+                  onClick={closeMenu}
+                  className="mobile-nav-pill mobile-nav-pill--ghost"
                 >
-                  <Link href="/register" onClick={closeMenu}>
-                    {t('register')}
-                  </Link>
-                </Button>
-              </div>
+                  <span>{t('register')}</span>
+                </Link>
+              </>
+            )}
+          </nav>
+
+          <div className="mobile-nav-footer mx-4 mt-4 flex items-center gap-3 border-t border-white/10 pt-4 pb-5">
+            <LocaleSwitcher className="shrink-0" />
+            {!loading && user && (
+              <UserMenu
+                variant="mobile"
+                onLogout={closeMenu}
+                logOutLabel={t('logOut')}
+              />
             )}
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }

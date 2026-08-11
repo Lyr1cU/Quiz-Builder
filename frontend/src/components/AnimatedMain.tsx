@@ -11,8 +11,8 @@ export function AnimatedMain({ children }: { children: React.ReactNode }) {
       key={pathname}
       className={
         isLanding
-          ? 'animate-in pt-16'
-          : 'animate-in mx-auto max-w-4xl px-4 pb-16 pt-28 sm:px-6 lg:px-8'
+          ? 'animate-in'
+          : 'animate-in mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8'
       }
     >
       {children}

@@ -62,7 +62,9 @@ export default function QuizDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, inviteToken, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, inviteToken]);
 
   useEffect(() => {
     void load();

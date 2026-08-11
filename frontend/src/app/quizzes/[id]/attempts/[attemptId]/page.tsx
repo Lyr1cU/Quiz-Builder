@@ -66,7 +66,9 @@ export default function AttemptDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, attemptId, user, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, attemptId, user]);
 
   useEffect(() => {
     if (!authLoading && user) void load();

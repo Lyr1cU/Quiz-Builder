@@ -40,7 +40,9 @@ export default function MyAttemptsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, t]);
+    // Intentionally omit `t`: locale changes must not refetch / flash loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && user) void load();
