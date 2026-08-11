@@ -2,12 +2,15 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { QuizPlay } from '@/components/QuizPlay';
 import { ApiError, api } from '@/services/api';
 import type { PlayQuiz } from '@/types/quiz';
 
 export default function QuizPlayPage() {
+  const t = useTranslations('playPage');
+  const tp = useTranslations('play');
   const params = useParams<{ id: string }>();
   const id = params.id;
 
@@ -28,7 +31,7 @@ export default function QuizPlayPage() {
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) setNotFound(true);
-        else setError(err instanceof Error ? err.message : 'Failed to load quiz');
+        else setError(err instanceof Error ? err.message : tp('loadFailed'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -37,7 +40,7 @@ export default function QuizPlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, tp]);
 
   return (
     <div>
@@ -45,14 +48,12 @@ export default function QuizPlayPage() {
         href={`/quizzes/${id}`}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back to quiz
+        {t('back')}
       </Link>
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading practice…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{t('loading')}</p>}
       {!loading && notFound && (
-        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-          Quiz not found or you do not have access.
-        </div>
+        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">{t('notFound')}</div>
       )}
       {!loading && error && (
         <div className="surface-card mt-6 px-5 py-4 text-sm text-[var(--danger)]">{error}</div>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { FormEvent, useEffect, useState } from 'react';
 import { PageHero } from '@/components/PageHero';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
+  const t = useTranslations('auth');
+  const tc = useTranslations('common');
   const router = useRouter();
   const { register, user, loading } = useAuth();
   const [name, setName] = useState('');
@@ -33,7 +36,7 @@ export default function RegisterPage() {
       await register(email.trim(), password, name.trim() || undefined);
       router.push('/quizzes');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : t('registerFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -41,13 +44,14 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-md">
-      <PageHero title="Register" subtitle="Create an account to build your own quizzes." light />
+      <PageHero title={t('registerTitle')} subtitle={t('registerSubtitle')} light />
       <Card className="animate-in animate-in-delay-1 gap-0 py-0">
         <CardContent className="px-6 py-7">
           <form onSubmit={onSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="name" className="text-ink">
-                Name <span className="font-normal text-muted-foreground">(optional)</span>
+                {t('name')}{' '}
+                <span className="font-normal text-muted-foreground">{tc('optional')}</span>
               </Label>
               <Input
                 id="name"
@@ -59,7 +63,7 @@ export default function RegisterPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="email" className="text-ink">
-                Email
+                {t('email')}
               </Label>
               <Input
                 id="email"
@@ -72,7 +76,7 @@ export default function RegisterPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password" className="text-ink">
-                Password
+                {t('password')}
               </Label>
               <Input
                 id="password"
@@ -83,18 +87,18 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">At least 8 characters</p>
+              <p className="text-xs text-muted-foreground">{t('passwordHint')}</p>
             </div>
             {error && (
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" variant="gold" size="lg" className="w-full" disabled={submitting}>
-              {submitting ? 'Creating account…' : 'Create account'}
+              {submitting ? t('creatingAccount') : t('createAccount')}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              {t('haveAccount')}{' '}
               <Link href="/login" className="font-semibold text-ink underline">
-                Log in
+                {t('logIn')}
               </Link>
             </p>
           </form>

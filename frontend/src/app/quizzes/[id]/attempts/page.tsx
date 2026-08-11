@@ -2,26 +2,32 @@
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError, api } from '@/services/api';
 import type { AttemptListItem, Quiz } from '@/types/quiz';
 
-function formatWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+function useFormatWhen() {
+  const locale = useLocale();
+  return (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString(locale);
+    } catch {
+      return iso;
+    }
+  };
 }
 
 export default function QuizMyAttemptsPage() {
+  const t = useTranslations('attempts');
+  const tc = useTranslations('common');
+  const formatWhen = useFormatWhen();
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite')?.trim() || undefined;
   const id = params.id;
   const { user, loading: authLoading } = useAuth();
-  // Invite guests have no access to the quiz by id, so carry the token through navigation.
   const inviteQuery = inviteToken ? `?invite=${encodeURIComponent(inviteToken)}` : '';
   const quizHref = inviteToken
     ? `/quizzes/invite/${encodeURIComponent(inviteToken)}`
@@ -45,29 +51,29 @@ export default function QuizMyAttemptsPage() {
       setAttempts(list);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
-        setError('Quiz not found');
+        setError(t('quizNotFound'));
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load attempts');
+        setError(err instanceof Error ? err.message : t('loadFailed'));
       }
     } finally {
       setLoading(false);
     }
-  }, [id, user, inviteToken]);
+  }, [id, user, inviteToken, t]);
 
   useEffect(() => {
     if (!authLoading && user) void load();
   }, [authLoading, user, load]);
 
   if (authLoading) {
-    return <p className="mt-6 text-sm text-white/80">Loading…</p>;
+    return <p className="mt-6 text-sm text-white/80">{tc('loading')}</p>;
   }
 
   if (!user) {
     return (
       <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-        Sign in to see your practice attempts for this quiz.{' '}
+        {t('signInQuizPrompt')}{' '}
         <Link href="/login" className="underline">
-          Log in
+          {t('logIn')}
         </Link>
       </div>
     );
@@ -79,18 +85,18 @@ export default function QuizMyAttemptsPage() {
         href={quizHref}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back to quiz
+        {t('backToQuiz')}
       </Link>
 
       <p className="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
-        My attempts
+        {t('eyebrow')}
       </p>
       <h1 className="mt-2 font-serif text-4xl font-semibold text-white">
-        {quiz?.title ?? 'Quiz attempts'}
+        {quiz?.title ?? t('quizAttemptsFallback')}
       </h1>
-      <p className="mt-2 text-sm text-white/70">Only you can see your practice results.</p>
+      <p className="mt-2 text-sm text-white/70">{t('quizAttemptsHint')}</p>
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{tc('loading')}</p>}
 
       {!loading && error && (
         <div className="surface-card mt-6 px-5 py-4 text-sm text-[var(--danger)]">{error}</div>
@@ -98,7 +104,7 @@ export default function QuizMyAttemptsPage() {
 
       {!loading && !error && attempts.length === 0 && (
         <div className="surface-card mt-6 px-5 py-10 text-center text-sm text-muted-foreground">
-          You have no saved attempts for this quiz yet. Finish practice while signed in to save one.
+          {t('emptyQuiz')}
         </div>
       )}
 

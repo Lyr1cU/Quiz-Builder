@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Source_Sans_3 } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import { AnimatedMain } from '@/components/AnimatedMain';
 import { Nav } from '@/components/Nav';
 import { AuthProvider } from '@/context/AuthContext';
@@ -8,13 +10,13 @@ import { cn } from '@/lib/utils';
 import './globals.css';
 
 const display = Cormorant_Garamond({
-  subsets: ['latin'],
+  subsets: ['latin', 'cyrillic'],
   weight: ['500', '600', '700'],
   variable: '--font-display',
 });
 
 const body = Source_Sans_3({
-  subsets: ['latin'],
+  subsets: ['latin', 'cyrillic'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-body',
 });
@@ -24,21 +26,26 @@ export const metadata: Metadata = {
   description: 'Create and manage custom quizzes',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" className={cn(display.variable, body.variable, 'font-sans')}>
+    <html lang={locale} className={cn(display.variable, body.variable, 'font-sans')}>
       <body className="antialiased">
-        <AuthProvider>
-          <div className="page-shell">
-            <Nav />
-            <AnimatedMain>{children}</AnimatedMain>
-          </div>
-          <Toaster richColors position="top-center" />
-        </AuthProvider>
+        <NextIntlClientProvider messages={messages}>
+          <AuthProvider>
+            <div className="page-shell">
+              <Nav />
+              <AnimatedMain>{children}</AnimatedMain>
+            </div>
+            <Toaster richColors position="top-center" />
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -1,17 +1,7 @@
-import type { Question } from '@/types/quiz';
+'use client';
 
-function typeLabel(type: Question['type']) {
-  switch (type) {
-    case 'BOOLEAN':
-      return 'Boolean';
-    case 'INPUT':
-      return 'Input';
-    case 'SINGLE':
-      return 'Single choice';
-    case 'MULTIPLE':
-      return 'Multiple choice';
-  }
-}
+import { useTranslations } from 'next-intl';
+import type { Question } from '@/types/quiz';
 
 export function QuestionReadonly({
   question,
@@ -22,6 +12,10 @@ export function QuestionReadonly({
   index: number;
   showAnswers?: boolean;
 }) {
+  const t = useTranslations('questionUi');
+  const tt = useTranslations('questionTypes');
+  const tc = useTranslations('common');
+
   const showOptions =
     (question.type === 'SINGLE' || question.type === 'MULTIPLE') &&
     Array.isArray(question.options);
@@ -35,10 +29,10 @@ export function QuestionReadonly({
     <article className="border-b border-[var(--line)] py-6 last:border-b-0">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Question {index + 1}
+          {t('questionN', { n: index + 1 })}
         </span>
         <span className="rounded-full bg-[#efeae2] px-2.5 py-0.5 text-xs font-medium text-[var(--ink)]">
-          {typeLabel(question.type)}
+          {tt(question.type)}
         </span>
       </div>
       <p className="text-lg font-semibold text-[var(--ink)]">{question.text}</p>
@@ -46,16 +40,16 @@ export function QuestionReadonly({
       <div className="mt-3 text-sm text-muted-foreground">
         {hasBooleanAnswer && (
           <p>
-            Correct answer:{' '}
+            {t('correctAnswer')}{' '}
             <span className="font-semibold text-[var(--ink)]">
-              {question.booleanAnswer ? 'True' : 'False'}
+              {question.booleanAnswer ? tc('true') : tc('false')}
             </span>
           </p>
         )}
 
         {hasInputAnswer && (
           <p>
-            Expected answer:{' '}
+            {t('expectedAnswer')}{' '}
             <span className="font-semibold text-[var(--ink)]">{question.inputAnswer}</span>
           </p>
         )}
@@ -81,8 +75,8 @@ export function QuestionReadonly({
                   {opt.label}
                   {optionsRevealCorrect
                     ? opt.isCorrect
-                      ? ' (correct)'
-                      : ' (incorrect)'
+                      ? ` ${t('correctMark')}`
+                      : ` ${t('incorrectMark')}`
                     : ''}
                 </span>
               </li>

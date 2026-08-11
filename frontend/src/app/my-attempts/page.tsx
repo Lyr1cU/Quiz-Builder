@@ -1,21 +1,28 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { PageHero } from '@/components/PageHero';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import type { AttemptListItem } from '@/types/quiz';
 
-function formatWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+function useFormatWhen() {
+  const locale = useLocale();
+  return (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString(locale);
+    } catch {
+      return iso;
+    }
+  };
 }
 
 export default function MyAttemptsPage() {
+  const t = useTranslations('attempts');
+  const tc = useTranslations('common');
+  const formatWhen = useFormatWhen();
   const { user, loading: authLoading } = useAuth();
   const [attempts, setAttempts] = useState<AttemptListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,26 +36,26 @@ export default function MyAttemptsPage() {
       const list = await api.getMyAttempts();
       setAttempts(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load attempts');
+      setError(err instanceof Error ? err.message : t('loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     if (!authLoading && user) void load();
   }, [authLoading, user, load]);
 
   if (authLoading) {
-    return <p className="text-center text-sm text-white/80">Loading…</p>;
+    return <p className="text-center text-sm text-white/80">{tc('loading')}</p>;
   }
 
   if (!user) {
     return (
       <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-        Sign in to see your practice history.{' '}
+        {t('signInPrompt')}{' '}
         <Link href="/login" className="underline">
-          Log in
+          {t('logIn')}
         </Link>
       </div>
     );
@@ -56,13 +63,9 @@ export default function MyAttemptsPage() {
 
   return (
     <div>
-      <PageHero
-        title="My attempts"
-        subtitle="Your saved practice results. Guests do not keep history."
-        light
-      />
+      <PageHero title={t('title')} subtitle={t('subtitle')} light />
 
-      {loading && <p className="text-center text-sm text-white/80">Loading…</p>}
+      {loading && <p className="text-center text-sm text-white/80">{tc('loading')}</p>}
 
       {!loading && error && (
         <div className="surface-card px-5 py-4 text-sm text-[var(--danger)]">{error}</div>
@@ -70,7 +73,7 @@ export default function MyAttemptsPage() {
 
       {!loading && !error && attempts.length === 0 && (
         <div className="surface-card px-5 py-12 text-center text-sm text-muted-foreground">
-          No attempts yet. Finish a quiz in practice mode while signed in.
+          {t('empty')}
         </div>
       )}
 
@@ -84,7 +87,7 @@ export default function MyAttemptsPage() {
               >
                 <div>
                   <p className="font-serif text-lg font-semibold text-ink">
-                    {attempt.quizTitle ?? 'Quiz'}
+                    {attempt.quizTitle ?? tc('quiz')}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">{formatWhen(attempt.createdAt)}</p>
                 </div>

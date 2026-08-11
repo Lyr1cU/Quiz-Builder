@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHero } from '@/components/PageHero';
 import { QuizListItemCard } from '@/components/QuizListItemCard';
@@ -15,6 +16,8 @@ import { cn } from '@/lib/utils';
 type Filter = 'all' | 'mine';
 
 export default function QuizzesPage() {
+  const t = useTranslations('quizzes');
+  const tc = useTranslations('common');
   const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,8 +27,8 @@ export default function QuizzesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    const t = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
   }, [searchInput]);
 
   const load = useCallback(async () => {
@@ -37,11 +40,11 @@ export default function QuizzesPage() {
       );
       setQuizzes(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load quizzes');
+      setError(err instanceof Error ? err.message : t('loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, t]);
 
   useEffect(() => {
     void load();
@@ -60,22 +63,20 @@ export default function QuizzesPage() {
 
   const emptyMessage = (() => {
     if (debouncedSearch) {
-      return filter === 'mine'
-        ? 'No matching quizzes in your list.'
-        : 'No quizzes match your search.';
+      return filter === 'mine' ? t('emptySearchMine') : t('emptySearch');
     }
-    return filter === 'mine' ? 'You have no quizzes yet.' : 'No quizzes yet.';
+    return filter === 'mine' ? t('emptyMine') : t('emptyAll');
   })();
 
   return (
     <div>
       <PageHero
-        title="Quizzes"
-        subtitle="Browse public quizzes or open ones you created."
+        title={t('title')}
+        subtitle={t('subtitle')}
         light
         actions={
           <Button asChild variant="gold" size="lg" className="min-w-[12rem]">
-            <Link href="/create">Create quiz</Link>
+            <Link href="/create">{t('createQuiz')}</Link>
           </Button>
         }
       />
@@ -83,14 +84,14 @@ export default function QuizzesPage() {
       <div className="animate-in animate-in-delay-1 mb-6 mx-auto max-w-xl space-y-6">
         <div>
           <label htmlFor="quiz-search" className="sr-only">
-            Search quizzes
+            {t('searchLabel')}
           </label>
           <Input
             id="quiz-search"
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by title or description…"
+            placeholder={t('searchPlaceholder')}
           />
         </div>
 
@@ -104,7 +105,7 @@ export default function QuizzesPage() {
                 filter === 'all' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
               )}
             >
-              Catalog
+              {t('catalog')}
             </button>
             <button
               type="button"
@@ -114,25 +115,20 @@ export default function QuizzesPage() {
                 filter === 'mine' ? 'bg-white text-ink' : 'bg-white/10 text-white/80 hover:bg-white/15',
               )}
             >
-              My quizzes
+              {t('myQuizzes')}
             </button>
           </div>
         )}
       </div>
 
-      {loading && (
-        <p className="text-center text-sm text-white/80">
-          Loading… If this is the first visit in a while, the free API may take up to a minute to wake
-          up.
-        </p>
-      )}
+      {loading && <p className="text-center text-sm text-white/80">{tc('loadingWake')}</p>}
 
       {!loading && error && (
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-4 text-sm text-destructive">
             <p>{error}</p>
             <button type="button" onClick={() => void load()} className="mt-2 underline">
-              Retry
+              {tc('retry')}
             </button>
           </CardContent>
         </Card>
@@ -147,7 +143,7 @@ export default function QuizzesPage() {
                 href="/create"
                 className="mt-3 inline-block text-sm font-semibold text-ink underline"
               >
-                Create your first quiz
+                {t('createFirst')}
               </Link>
             )}
           </CardContent>

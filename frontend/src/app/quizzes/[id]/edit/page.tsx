@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { CreateQuizForm } from '@/components/CreateQuizForm';
 import { PageHero } from '@/components/PageHero';
@@ -10,6 +11,8 @@ import { ApiError, api } from '@/services/api';
 import type { Quiz } from '@/types/quiz';
 
 export default function EditQuizPage() {
+  const t = useTranslations('edit');
+  const tc = useTranslations('common');
   const params = useParams<{ id: string }>();
   const id = params.id;
   const router = useRouter();
@@ -37,12 +40,12 @@ export default function EditQuizPage() {
       if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
         setForbidden(true);
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load quiz');
+        setError(err instanceof Error ? err.message : t('loadFailed'));
       }
     } finally {
       setLoading(false);
     }
-  }, [id, user]);
+  }, [id, user, t]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -55,7 +58,7 @@ export default function EditQuizPage() {
   }, [user, load]);
 
   if (authLoading || (!user && !forbidden)) {
-    return <p className="text-center text-sm text-white/80">Loading…</p>;
+    return <p className="text-center text-sm text-white/80">{tc('loading')}</p>;
   }
 
   if (!user) {
@@ -68,21 +71,15 @@ export default function EditQuizPage() {
         href={quiz ? `/quizzes/${quiz.id}` : '/quizzes'}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back
+        {t('back')}
       </Link>
 
-      <PageHero
-        title="Edit quiz"
-        subtitle="Update title, visibility, and questions. Only you can edit this quiz."
-        light
-      />
+      <PageHero title={t('title')} subtitle={t('subtitle')} light />
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{tc('loading')}</p>}
 
       {!loading && forbidden && (
-        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-          You can only edit quizzes you created.
-        </div>
+        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">{t('forbidden')}</div>
       )}
 
       {!loading && error && (

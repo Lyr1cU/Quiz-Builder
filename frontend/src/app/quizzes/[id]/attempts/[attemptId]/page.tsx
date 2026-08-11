@@ -2,27 +2,39 @@
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ApiError, api } from '@/services/api';
 import { isUnverifiedGrading, type AttemptDetail } from '@/types/quiz';
 
-function formatWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+function useFormatWhen() {
+  const locale = useLocale();
+  return (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString(locale);
+    } catch {
+      return iso;
+    }
+  };
 }
 
-function formatAnswer(value: boolean | string | string[] | null | undefined): string {
+function formatAnswer(
+  value: boolean | string | string[] | null | undefined,
+  trueLabel: string,
+  falseLabel: string,
+): string {
   if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? 'True' : 'False';
+  if (typeof value === 'boolean') return value ? trueLabel : falseLabel;
   if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
   return value || '—';
 }
 
 export default function AttemptDetailPage() {
+  const t = useTranslations('attempts');
+  const tc = useTranslations('common');
+  const tq = useTranslations('questionUi');
+  const formatWhen = useFormatWhen();
   const params = useParams<{ id: string; attemptId: string }>();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite')?.trim() || undefined;
@@ -49,27 +61,27 @@ export default function AttemptDetailPage() {
       if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
         setNotFound(true);
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load attempt');
+        setError(err instanceof Error ? err.message : t('loadAttemptFailed'));
       }
     } finally {
       setLoading(false);
     }
-  }, [id, attemptId, user]);
+  }, [id, attemptId, user, t]);
 
   useEffect(() => {
     if (!authLoading && user) void load();
   }, [authLoading, user, load]);
 
   if (authLoading) {
-    return <p className="mt-6 text-sm text-white/80">Loading…</p>;
+    return <p className="mt-6 text-sm text-white/80">{tc('loading')}</p>;
   }
 
   if (!user) {
     return (
       <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-        Sign in to view your attempt.{' '}
+        {t('signInAttemptPrompt')}{' '}
         <Link href="/login" className="underline">
-          Log in
+          {t('logIn')}
         </Link>
       </div>
     );
@@ -86,15 +98,13 @@ export default function AttemptDetailPage() {
         href={attemptsHref}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back to my attempts
+        {t('backToAttempts')}
       </Link>
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{tc('loading')}</p>}
 
       {!loading && notFound && (
-        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-          Attempt not found. You can only open your own practice results.
-        </div>
+        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">{t('notFound')}</div>
       )}
 
       {!loading && error && (
@@ -104,18 +114,23 @@ export default function AttemptDetailPage() {
       {!loading && attempt && (
         <div className="mt-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
-            Your attempt
+            {t('attemptEyebrow')}
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold text-white">
-            {attempt.quizTitle ?? 'Practice result'}
+            {attempt.quizTitle ?? t('practiceResult')}
           </h1>
           <p className="mt-2 text-sm text-white/70">
-            {formatWhen(attempt.createdAt)} · {attempt.scoreCorrect}/{attempt.scoreTotal} correct
+            {t('scoreLine', {
+              when: formatWhen(attempt.createdAt),
+              correct: attempt.scoreCorrect,
+              total: attempt.scoreTotal,
+            })}
           </p>
           {unverifiedCount > 0 && (
             <p className="mt-2 text-sm text-amber-200">
-              {unverifiedCount} answer{unverifiedCount === 1 ? '' : 's'} could not be verified by AI
-              grading and {unverifiedCount === 1 ? 'was' : 'were'} not counted as correct.
+              {unverifiedCount === 1
+                ? t('unverifiedOne', { count: unverifiedCount })
+                : t('unverifiedMany', { count: unverifiedCount })}
             </p>
           )}
 
@@ -125,7 +140,9 @@ export default function AttemptDetailPage() {
               return (
                 <li key={a.id} className="surface-card overflow-hidden">
                   <div className="flex items-center justify-between bg-[#e8dfd0] px-5 py-3">
-                    <p className="text-sm font-semibold text-[var(--ink)]">Question {index + 1}</p>
+                    <p className="text-sm font-semibold text-[var(--ink)]">
+                      {tq('questionN', { n: index + 1 })}
+                    </p>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         a.isCorrect
@@ -135,20 +152,24 @@ export default function AttemptDetailPage() {
                             : 'bg-red-100 text-red-700'
                       }`}
                     >
-                      {a.isCorrect ? 'Correct' : unverified ? 'Not verified' : 'Incorrect'}
+                      {a.isCorrect
+                        ? t('correct')
+                        : unverified
+                          ? t('unverified')
+                          : t('incorrect')}
                     </span>
                   </div>
                   <div className="space-y-2 px-5 py-4 text-sm text-[var(--ink)]">
                     <p className="font-medium">{a.questionText}</p>
                     <p className="text-muted-foreground">
-                      Your answer:{' '}
-                      <span className="text-[var(--ink)]">{formatAnswer(a.userAnswer)}</span>
+                      {t('yourAnswer')}{' '}
+                      <span className="text-[var(--ink)]">
+                        {formatAnswer(a.userAnswer, tc('true'), tc('false'))}
+                      </span>
                     </p>
                     {unverified && (
                       <p className="text-amber-700">
-                        {a.gradingMethod === 'skipped'
-                          ? 'AI grading limit for this attempt was reached — this answer was not verified.'
-                          : 'AI grading was unavailable — this answer was not verified.'}
+                        {a.gradingMethod === 'skipped' ? t('aiSkipped') : t('aiUnavailable')}
                       </p>
                     )}
                   </div>

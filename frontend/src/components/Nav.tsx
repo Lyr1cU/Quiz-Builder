@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Menu, UserRound, X } from 'lucide-react';
 import { BrandMark } from '@/components/BrandMark';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,7 @@ function NavLink({
 }
 
 export function Nav() {
+  const t = useTranslations('nav');
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -76,27 +79,28 @@ export function Nav() {
         >
           <BrandMark className="shrink-0 group-hover:rotate-6" />
           <span className="truncate font-serif text-xl font-bold tracking-tight sm:text-2xl">
-            Quiz Builder
+            {t('brand')}
           </span>
         </Link>
 
         <nav className="hidden items-center gap-5 md:flex">
           {user && (
             <NavLink href="/create" active={createActive}>
-              Create quiz
+              {t('createQuiz')}
             </NavLink>
           )}
           <NavLink href="/quizzes" active={quizzesActive}>
-            Quizzes
+            {t('quizzes')}
           </NavLink>
           {user && (
             <NavLink href="/my-attempts" active={attemptsActive}>
-              My attempts
+              {t('myAttempts')}
             </NavLink>
           )}
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
+          <LocaleSwitcher />
           {!loading && user && (
             <>
               <span className="inline-flex max-w-[10rem] items-center gap-2 truncate text-sm text-white/75">
@@ -109,14 +113,14 @@ export function Nav() {
                 onClick={() => void logout()}
                 className="whitespace-nowrap text-sm font-medium text-white/75 transition-colors hover:text-white"
               >
-                Log out
+                {t('logOut')}
               </button>
             </>
           )}
           {!loading && !user && (
             <>
               <NavLink href="/login" active={pathname.startsWith('/login')}>
-                Log in
+                {t('logIn')}
               </NavLink>
               <Button
                 asChild
@@ -124,7 +128,7 @@ export function Nav() {
                 size="sm"
                 className="rounded-full bg-white/10 px-3 text-white hover:bg-white/15 hover:text-white"
               >
-                <Link href="/register">Register</Link>
+                <Link href="/register">{t('register')}</Link>
               </Button>
             </>
           )}
@@ -135,7 +139,7 @@ export function Nav() {
           className="inline-flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 md:hidden"
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
           onClick={() => setMenuOpen((open) => !open)}
         >
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -150,11 +154,11 @@ export function Nav() {
           <nav className="flex flex-col gap-4">
             {user && (
               <NavLink href="/create" active={createActive} onClick={closeMenu} className="w-fit">
-                Create quiz
+                {t('createQuiz')}
               </NavLink>
             )}
             <NavLink href="/quizzes" active={quizzesActive} onClick={closeMenu} className="w-fit">
-              Quizzes
+              {t('quizzes')}
             </NavLink>
             {user && (
               <NavLink
@@ -163,12 +167,13 @@ export function Nav() {
                 onClick={closeMenu}
                 className="w-fit"
               >
-                My attempts
+                {t('myAttempts')}
               </NavLink>
             )}
           </nav>
 
           <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4">
+            <LocaleSwitcher className="mb-1" />
             {!loading && user && (
               <>
                 <span className="inline-flex items-center gap-2 text-sm text-white/75">
@@ -183,7 +188,7 @@ export function Nav() {
                   }}
                   className="w-fit text-sm font-medium text-white/75 transition-colors hover:text-white"
                 >
-                  Log out
+                  {t('logOut')}
                 </button>
               </>
             )}
@@ -195,7 +200,7 @@ export function Nav() {
                   onClick={closeMenu}
                   className="w-fit"
                 >
-                  Log in
+                  {t('logIn')}
                 </NavLink>
                 <Button
                   asChild
@@ -204,7 +209,7 @@ export function Nav() {
                   className="rounded-full bg-white/10 px-3 text-white hover:bg-white/15 hover:text-white"
                 >
                   <Link href="/register" onClick={closeMenu}>
-                    Register
+                    {t('register')}
                   </Link>
                 </Button>
               </div>

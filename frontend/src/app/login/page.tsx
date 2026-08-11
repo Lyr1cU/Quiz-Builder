@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { FormEvent, useEffect, useState } from 'react';
 import { PageHero } from '@/components/PageHero';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
+  const t = useTranslations('auth');
   const router = useRouter();
   const { login, user, loading } = useAuth();
   const [email, setEmail] = useState('');
@@ -32,7 +34,7 @@ export default function LoginPage() {
       await login(email.trim(), password);
       router.push('/quizzes');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('loginFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -40,13 +42,13 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md">
-      <PageHero title="Log in" subtitle="Sign in to create and manage your quizzes." light />
+      <PageHero title={t('loginTitle')} subtitle={t('loginSubtitle')} light />
       <Card className="animate-in animate-in-delay-1 gap-0 py-0">
         <CardContent className="px-6 py-7">
           <form onSubmit={onSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <Label htmlFor="email" className="text-ink">
-                Email
+                {t('email')}
               </Label>
               <Input
                 id="email"
@@ -59,7 +61,7 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password" className="text-ink">
-                Password
+                {t('password')}
               </Label>
               <Input
                 id="password"
@@ -74,12 +76,12 @@ export default function LoginPage() {
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" variant="gold" size="lg" className="w-full" disabled={submitting}>
-              {submitting ? 'Signing in…' : 'Log in'}
+              {submitting ? t('signingIn') : t('logIn')}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              No account?{' '}
+              {t('noAccount')}{' '}
               <Link href="/register" className="font-semibold text-ink underline">
-                Register
+                {t('register')}
               </Link>
             </p>
           </form>

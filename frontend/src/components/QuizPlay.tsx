@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -43,10 +44,12 @@ function emptyAnswer(question: PlayQuestion): AnswerState {
 
 function formatAnswer(
   value: boolean | string | string[] | null | undefined,
+  trueLabel: string,
+  falseLabel: string,
   question?: PlayQuestion,
 ): string {
   if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? 'True' : 'False';
+  if (typeof value === 'boolean') return value ? trueLabel : falseLabel;
   if (Array.isArray(value)) {
     if (!value.length) return '—';
     if (question?.options) {
@@ -65,12 +68,6 @@ function formatAnswer(
 
 function optionLetter(index: number) {
   return String.fromCharCode(65 + index);
-}
-
-function unverifiedNotice(result: CheckAnswerResult): string {
-  return result.gradingMethod === 'skipped'
-    ? 'AI grading limit for this quiz was reached — this answer was not verified.'
-    : 'AI grading is temporarily unavailable — this answer was not verified.';
 }
 
 function LetterBadge({ letter, selected }: { letter: string; selected: boolean }) {
@@ -149,6 +146,8 @@ function ChoiceOptionButton({
 }
 
 export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
+  const t = useTranslations('play');
+  const tc = useTranslations('common');
   const { user } = useAuth();
   const questions = quiz.questions;
   const [index, setIndex] = useState(0);
@@ -193,19 +192,19 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
     setError(null);
 
     if (answer.type === 'BOOLEAN' && answer.value === null) {
-      setError('Select True or False');
+      setError(t('selectTrueFalse'));
       return;
     }
     if (answer.type === 'INPUT' && answer.value.trim().length === 0) {
-      setError('Enter an answer');
+      setError(t('enterAnswer'));
       return;
     }
     if (answer.type === 'SINGLE' && !answer.value) {
-      setError('Select an option');
+      setError(t('selectOption'));
       return;
     }
     if (answer.type === 'MULTIPLE' && answer.value.length === 0) {
-      setError('Select at least one option');
+      setError(t('selectAtLeastOne'));
       return;
     }
 
@@ -247,7 +246,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check answer');
+      setError(err instanceof Error ? err.message : t('checkFailed'));
     } finally {
       setChecking(false);
     }
@@ -268,7 +267,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
     const recorded = recordedRef.current;
     if (recorded.length !== questions.length) {
       setSaveError(
-        `Could not save: answered ${recorded.length} of ${questions.length} questions. Check each question before finishing.`,
+        t('partialSave', { answered: recorded.length, total: questions.length }),
       );
       return;
     }
@@ -283,7 +282,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
       setSavedUnverified(attempt.scoreUnverified ?? 0);
       setSaved(true);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save attempt');
+      setSaveError(err instanceof Error ? err.message : t('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -299,9 +298,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
 
   if (!question) {
     return (
-      <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-        This quiz has no questions.
-      </div>
+      <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">{t('noQuestions')}</div>
     );
   }
 
@@ -309,7 +306,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
     return (
       <div className="animate-in mt-6">
         <p className="animate-in text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
-          Practice complete
+          {t('practiceComplete')}
         </p>
         <h1 className="animate-in animate-in-delay-1 mt-2 font-serif text-4xl font-semibold text-white">
           {quiz.title}
@@ -318,23 +315,22 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
           <p className="font-serif text-3xl font-semibold text-[var(--ink)]">
             {(savedScore ?? score).correct} / {(savedScore ?? score).total}
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">correct answers</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('correctAnswers')}</p>
           {shownUnverified > 0 && (
             <p className="mt-2 text-sm text-amber-700">
-              {shownUnverified} answer{shownUnverified === 1 ? '' : 's'} could not be verified by AI
-              grading and {shownUnverified === 1 ? 'was' : 'were'} not counted as correct.
+              {shownUnverified === 1
+                ? t('unverifiedOne', { count: shownUnverified })
+                : t('unverifiedMany', { count: shownUnverified })}
             </p>
           )}
           {saving && (
-            <p className="animate-feedback mt-3 text-sm text-muted-foreground">
-              Saving your attempt…
-            </p>
+            <p className="animate-feedback mt-3 text-sm text-muted-foreground">{t('savingAttempt')}</p>
           )}
           {!saving && saved && (
             <p className="animate-feedback mt-3 text-sm text-emerald-700">
-              Saved to{' '}
+              {t('savedPrefix')}{' '}
               <Link href={attemptsHref} className="underline">
-                your attempt history
+                {t('attemptHistory')}
               </Link>
               .
             </p>
@@ -342,9 +338,9 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
           {!saving && !user && (
             <p className="animate-feedback mt-3 text-sm text-muted-foreground">
               <Link href="/login" className="underline">
-                Sign in
+                {t('signIn')}
               </Link>{' '}
-              next time to keep your practice history.
+              {t('guestHint')}
             </p>
           )}
           {!saving && saveError && (
@@ -366,13 +362,13 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
               }}
               className="gold-btn rounded-full px-5 py-2.5 text-sm font-semibold"
             >
-              Practice again
+              {t('practiceAgain')}
             </button>
             <Link
               href={backHref}
               className="rounded-full border border-[var(--line)] bg-white px-5 py-2.5 text-sm font-medium text-[var(--ink)]"
             >
-              Back
+              {tc('back')}
             </Link>
           </div>
         </div>
@@ -386,7 +382,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
   return (
     <div className="mt-6">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
-        Practice mode
+        {t('practiceMode')}
       </p>
       <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-white sm:text-5xl">
         {quiz.title}
@@ -396,7 +392,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
         <div className="space-y-5 px-5 py-6 sm:px-7">
           <div>
             <p className="text-sm text-muted-foreground">
-              Question {progress.current} of {progress.total}
+              {t('questionOf', { current: progress.current, total: progress.total })}
             </p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efeae2]">
               <div
@@ -416,7 +412,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
                   <li key={String(value)}>
                     <ChoiceOptionButton
                       letter={optionLetter(i)}
-                      label={value ? 'True' : 'False'}
+                      label={value ? tc('true') : tc('false')}
                       selected={selected}
                       disabled={Boolean(result)}
                       mode="single"
@@ -432,7 +428,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
             <input
               type="text"
               className="field-input"
-              placeholder="Your answer"
+              placeholder={t('yourAnswer')}
               disabled={Boolean(result)}
               value={answer.type === 'INPUT' ? answer.value : ''}
               onChange={(e) => setAnswer({ type: 'INPUT', value: e.target.value })}
@@ -499,17 +495,25 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
               }`}
             >
               <p className="font-semibold">
-                {result.isCorrect ? 'Correct!' : resultUnverified ? 'Not verified' : 'Incorrect'}
+                {result.isCorrect
+                  ? t('correct')
+                  : resultUnverified
+                    ? t('notVerified')
+                    : t('incorrect')}
               </p>
               {!result.isCorrect && (
                 <>
                   <p className="mt-2 text-ink">
-                    Your answer:{' '}
+                    {t('yourAnswerLabel')}{' '}
                     <span className="font-medium">
-                      {formatAnswer(result.userAnswer, question)}
+                      {formatAnswer(result.userAnswer, tc('true'), tc('false'), question)}
                     </span>
                   </p>
-                  {resultUnverified && <p className="mt-1">{unverifiedNotice(result)}</p>}
+                  {resultUnverified && (
+                    <p className="mt-1">
+                      {result.gradingMethod === 'skipped' ? t('aiSkipped') : t('aiUnavailable')}
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -523,7 +527,7 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
                 disabled={checking}
                 className="gold-btn rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
               >
-                {checking ? 'Checking…' : 'Check answer'}
+                {checking ? t('checking') : t('checkAnswer')}
               </button>
             ) : (
               <button
@@ -531,14 +535,14 @@ export function QuizPlay({ quiz, inviteToken, backHref }: Props) {
                 onClick={onNext}
                 className="gold-btn rounded-full px-5 py-2.5 text-sm font-semibold"
               >
-                {index >= questions.length - 1 ? 'See results' : 'Continue'}
+                {index >= questions.length - 1 ? t('seeResults') : t('continue')}
               </button>
             )}
             <Link
               href={backHref}
               className="rounded-full border border-secondary bg-white px-5 py-2.5 text-sm font-medium text-secondary transition hover:bg-[#eef5f4]"
             >
-              Exit
+              {t('exit')}
             </Link>
           </div>
         </div>

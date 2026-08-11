@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
   useFieldArray,
@@ -36,6 +37,8 @@ type Props =
     };
 
 export function CreateQuizForm(props: Props) {
+  const t = useTranslations('form');
+  const tc = useTranslations('common');
   const mode = props.mode === 'edit' ? 'edit' : props.mode === 'import' ? 'import' : 'create';
   const quiz = props.mode === 'edit' ? props.quiz : null;
   const importValidation = props.mode === 'import' ? props.importValidation : null;
@@ -99,8 +102,8 @@ export function CreateQuizForm(props: Props) {
         err instanceof Error
           ? err.message
           : mode === 'edit'
-            ? 'Failed to update quiz'
-            : 'Failed to create quiz',
+            ? t('updateFailed')
+            : t('createFailed'),
       );
     }
   }
@@ -111,22 +114,18 @@ export function CreateQuizForm(props: Props) {
     const values = getValues();
     const payload = formValuesToValidOnlyPayload(values);
     if (!payload) {
-      setValidationError('Fix the quiz title and add at least one valid question.');
+      setValidationError(t('partialValidation'));
       return;
     }
     try {
       await saveQuiz(payload);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to create quiz');
+      setSubmitError(err instanceof Error ? err.message : t('createFailed'));
     }
   }
 
   function onInvalid() {
-    setValidationError(
-      mode === 'edit'
-        ? 'Please fix the highlighted fields before saving the quiz.'
-        : 'Please fix the highlighted fields before creating the quiz.',
-    );
+    setValidationError(mode === 'edit' ? t('formInvalidEdit') : t('formInvalidCreate'));
   }
 
   const importInvalidCount = importValidation?.meta.invalidCount ?? 0;
@@ -140,16 +139,17 @@ export function CreateQuizForm(props: Props) {
     >
       {mode === 'import' && importValidation && (
         <div className="surface-card space-y-2 px-5 py-4 text-sm text-[var(--ink)]">
-          <p className="font-semibold">Import preview</p>
+          <p className="font-semibold">{t('importPreview')}</p>
           <p className="text-muted-foreground">
-            {importValidation.meta.validCount} of {importValidation.questions.length} questions
-            passed validation.
-            {importValidation.meta.invalidCount > 0 &&
-              ' Fix errors below, or create a quiz from valid questions only.'}
+            {t('importValidSummary', {
+              valid: importValidation.meta.validCount,
+              total: importValidation.questions.length,
+            })}
+            {importValidation.meta.invalidCount > 0 ? t('importFixHint') : null}
           </p>
           {!importValidation.meta.titleValid && importValidation.meta.titleErrors.length > 0 && (
             <p className="text-[var(--danger)]">
-              Title: {importValidation.meta.titleErrors.join('; ')}
+              {t('titleLabel')} {importValidation.meta.titleErrors.join('; ')}
             </p>
           )}
         </div>
@@ -158,14 +158,14 @@ export function CreateQuizForm(props: Props) {
       <div className="surface-card flex flex-col gap-6 px-5 py-7 sm:px-7">
         <div>
           <label htmlFor="title" className="mb-2 block text-sm font-semibold text-ink">
-            Quiz title
+            {t('quizTitle')}
           </label>
           <input
             id="title"
             type="text"
             {...register('title')}
             className="field-input"
-            placeholder="e.g. JavaScript Basics"
+            placeholder={t('titlePlaceholder')}
           />
           {errors.title && (
             <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.title.message}</p>
@@ -174,14 +174,15 @@ export function CreateQuizForm(props: Props) {
 
         <div>
           <label htmlFor="description" className="mb-2 block text-sm font-semibold text-ink">
-            Description <span className="font-normal text-muted-foreground">(optional)</span>
+            {t('description')}{' '}
+            <span className="font-normal text-muted-foreground">{tc('optional')}</span>
           </label>
           <textarea
             id="description"
             rows={3}
             {...register('description')}
             className="field-input !rounded-2xl"
-            placeholder="Brief overview of what this quiz covers"
+            placeholder={t('descriptionPlaceholder')}
           />
           {errors.description && (
             <p className="mt-1.5 text-sm text-[var(--danger)]">{errors.description.message}</p>
@@ -189,7 +190,7 @@ export function CreateQuizForm(props: Props) {
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-semibold text-ink">Visibility</p>
+          <p className="mb-2 text-sm font-semibold text-ink">{t('visibility')}</p>
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm text-ink">
               <input
@@ -198,7 +199,7 @@ export function CreateQuizForm(props: Props) {
                 {...register('visibility')}
                 className="accent-[var(--gold-from)]"
               />
-              Public — visible in the catalog
+              {t('visibilityPublic')}
             </label>
             <label className="flex items-center gap-2 text-sm text-ink">
               <input
@@ -207,14 +208,14 @@ export function CreateQuizForm(props: Props) {
                 {...register('visibility')}
                 className="accent-[var(--gold-from)]"
               />
-              Private — only you + invite link
+              {t('visibilityPrivate')}
             </label>
           </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-5">
-        <h2 className="font-serif text-2xl font-semibold text-white">Questions</h2>
+        <h2 className="font-serif text-2xl font-semibold text-white">{t('questions')}</h2>
 
         {errors.questions?.root && (
           <p className="rounded-xl bg-white/95 px-4 py-3 text-sm text-[var(--danger)]">
@@ -239,9 +240,9 @@ export function CreateQuizForm(props: Props) {
             <fieldset key={field.id} className="surface-card stagger-item overflow-hidden">
               <div className="flex items-center justify-between bg-[#e8dfd0] px-5 py-3">
                 <legend className="text-sm font-semibold text-[var(--ink)]">
-                  Question {index + 1}
+                  {t('questionN', { n: index + 1 })}
                   {importQErrors?.length ? (
-                    <span className="ml-2 font-normal text-[var(--danger)]">(needs fix)</span>
+                    <span className="ml-2 font-normal text-[var(--danger)]">{t('needsFix')}</span>
                   ) : null}
                 </legend>
                 {fields.length > 1 && (
@@ -250,7 +251,7 @@ export function CreateQuizForm(props: Props) {
                     onClick={() => remove(index)}
                     className="text-sm font-medium text-[var(--danger)] hover:underline"
                   >
-                    Remove
+                    {t('remove')}
                   </button>
                 )}
               </div>
@@ -267,24 +268,24 @@ export function CreateQuizForm(props: Props) {
 
               <div className="space-y-4 px-5 py-5">
                 <div className="max-w-xs">
-                  <label className="mb-2 block text-sm font-semibold text-[var(--ink)]">Type</label>
+                  <label className="mb-2 block text-sm font-semibold text-[var(--ink)]">{t('type')}</label>
                   <select {...register(`questions.${index}.type`)} className="field-select">
-                    <option value="BOOLEAN">Boolean</option>
-                    <option value="INPUT">Input</option>
-                    <option value="SINGLE">Single choice</option>
-                    <option value="MULTIPLE">Multiple choice</option>
+                    <option value="BOOLEAN">{t('typeBoolean')}</option>
+                    <option value="INPUT">{t('typeInput')}</option>
+                    <option value="SINGLE">{t('typeSingle')}</option>
+                    <option value="MULTIPLE">{t('typeMultiple')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[var(--ink)]">
-                    Question text
+                    {t('questionText')}
                   </label>
                   <input
                     type="text"
                     {...register(`questions.${index}.text`)}
                     className="field-input"
-                    placeholder="Enter the question"
+                    placeholder={t('questionPlaceholder')}
                   />
                   {qErrors?.text && (
                     <p className="mt-1.5 text-sm text-[var(--danger)]">{qErrors.text.message}</p>
@@ -293,7 +294,7 @@ export function CreateQuizForm(props: Props) {
 
                 {type === 'BOOLEAN' && (
                   <div>
-                    <p className="mb-2 text-sm font-semibold text-[var(--ink)]">Correct answer</p>
+                    <p className="mb-2 text-sm font-semibold text-[var(--ink)]">{t('correctAnswer')}</p>
                     <div className="flex gap-6">
                       <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
                         <input
@@ -302,7 +303,7 @@ export function CreateQuizForm(props: Props) {
                           {...register(`questions.${index}.booleanAnswer`)}
                           className="accent-[var(--gold-from)]"
                         />
-                        True
+                        {tc('true')}
                       </label>
                       <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
                         <input
@@ -311,7 +312,7 @@ export function CreateQuizForm(props: Props) {
                           {...register(`questions.${index}.booleanAnswer`)}
                           className="accent-[var(--gold-from)]"
                         />
-                        False
+                        {tc('false')}
                       </label>
                     </div>
                   </div>
@@ -320,13 +321,13 @@ export function CreateQuizForm(props: Props) {
                 {type === 'INPUT' && (
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-[var(--ink)]">
-                      Expected answer
+                      {t('expectedAnswer')}
                     </label>
                     <input
                       type="text"
                       {...register(`questions.${index}.inputAnswer`)}
                       className="field-input"
-                      placeholder="Short text answer"
+                      placeholder={t('inputPlaceholder')}
                     />
                     {qErrors?.inputAnswer && (
                       <p className="mt-1.5 text-sm text-[var(--danger)]">
@@ -373,7 +374,7 @@ export function CreateQuizForm(props: Props) {
             className="btn-motion inline-flex h-12 items-center justify-center gap-2 rounded-full border-2 border-secondary bg-white px-8 text-sm font-bold text-secondary shadow-md hover:bg-secondary hover:text-white"
           >
             <Plus className="size-4" strokeWidth={2.5} aria-hidden />
-            Add question
+            {t('addQuestion')}
           </button>
           {mode === 'import' && onCancel && (
             <button
@@ -381,7 +382,7 @@ export function CreateQuizForm(props: Props) {
               onClick={onCancel}
               className="inline-flex h-12 items-center justify-center rounded-full border border-white/40 bg-white/10 px-8 text-sm font-semibold text-white hover:bg-white/20"
             >
-              Cancel
+              {t('cancel')}
             </button>
           )}
         </div>
@@ -394,8 +395,10 @@ export function CreateQuizForm(props: Props) {
               className="h-12 rounded-full border-2 border-white bg-white/95 px-8 text-sm font-bold text-secondary hover:bg-white disabled:opacity-50"
             >
               {isSubmitting
-                ? 'Creating…'
-                : `Create with ${liveValidCount} valid question${liveValidCount === 1 ? '' : 's'}`}
+                ? t('creating')
+                : liveValidCount === 1
+                  ? t('createWithValidOne', { count: liveValidCount })
+                  : t('createWithValidMany', { count: liveValidCount })}
             </button>
           )}
           <button
@@ -405,11 +408,11 @@ export function CreateQuizForm(props: Props) {
           >
             {isSubmitting
               ? mode === 'edit'
-                ? 'Saving…'
-                : 'Creating…'
+                ? t('saving')
+                : t('creating')
               : mode === 'edit'
-                ? 'Save changes'
-                : 'Create quiz'}
+                ? t('saveChanges')
+                : t('createQuiz')}
           </button>
         </div>
       </div>
@@ -434,6 +437,7 @@ function ChoiceOptions({
   watch: UseFormWatch<QuizFormValues>;
   questionErrors?: FieldErrors<QuizFormValues['questions'][number]>;
 }) {
+  const t = useTranslations('form');
   const errorMessage =
     questionErrors?.options?.message || questionErrors?.options?.root?.message || undefined;
   const optionErrors = questionErrors?.options;
@@ -447,13 +451,13 @@ function ChoiceOptions({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-[var(--ink)]">Options</p>
+        <p className="text-sm font-semibold text-[var(--ink)]">{t('options')}</p>
         <button
           type="button"
           onClick={() => append({ label: '', isCorrect: false })}
           className="text-sm font-medium text-[var(--gold-to)] hover:underline"
         >
-          Add option
+          {t('addOption')}
         </button>
       </div>
       {errorMessage && <p className="text-sm text-[var(--danger)]">{errorMessage}</p>}
@@ -464,7 +468,7 @@ function ChoiceOptions({
               type="text"
               {...register(`questions.${questionIndex}.options.${optIndex}.label`)}
               className="field-input min-w-[12rem] flex-1 !rounded-2xl"
-              placeholder={`Option ${optIndex + 1}`}
+              placeholder={t('optionN', { n: optIndex + 1 })}
             />
             {Array.isArray(optionErrors) && optionErrors[optIndex]?.label && (
               <p className="w-full text-sm text-[var(--danger)]">
@@ -502,7 +506,7 @@ function ChoiceOptions({
                   }}
                 />
               )}
-              Correct
+              {t('correct')}
             </label>
             {fields.length > 2 && (
               <button
@@ -510,7 +514,7 @@ function ChoiceOptions({
                 onClick={() => remove(optIndex)}
                 className="text-sm text-[var(--danger)] hover:underline"
               >
-                Remove
+                {t('remove')}
               </button>
             )}
           </li>

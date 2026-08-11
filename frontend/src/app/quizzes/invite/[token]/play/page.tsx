@@ -2,12 +2,16 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { QuizPlay } from '@/components/QuizPlay';
 import { ApiError, api } from '@/services/api';
 import type { PlayQuiz } from '@/types/quiz';
 
 export default function InvitePlayPage() {
+  const t = useTranslations('playPage');
+  const ti = useTranslations('invite');
+  const tp = useTranslations('play');
   const params = useParams<{ token: string }>();
   const token = params.token;
 
@@ -28,7 +32,7 @@ export default function InvitePlayPage() {
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) setNotFound(true);
-        else setError(err instanceof Error ? err.message : 'Failed to load quiz');
+        else setError(err instanceof Error ? err.message : tp('loadFailed'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -37,7 +41,7 @@ export default function InvitePlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, tp]);
 
   return (
     <div>
@@ -45,24 +49,18 @@ export default function InvitePlayPage() {
         href={`/quizzes/invite/${token}`}
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back to shared quiz
+        {t('back')}
       </Link>
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading practice…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{t('loading')}</p>}
       {!loading && notFound && (
-        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-          Invite link is invalid or was revoked.
-        </div>
+        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">{ti('notFound')}</div>
       )}
       {!loading && error && (
         <div className="surface-card mt-6 px-5 py-4 text-sm text-[var(--danger)]">{error}</div>
       )}
       {!loading && quiz && (
-        <QuizPlay
-          quiz={quiz}
-          inviteToken={token}
-          backHref={`/quizzes/invite/${token}`}
-        />
+        <QuizPlay quiz={quiz} inviteToken={token} backHref={`/quizzes/invite/${token}`} />
       )}
     </div>
   );

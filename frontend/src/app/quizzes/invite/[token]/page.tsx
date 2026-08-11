@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { QuestionReadonly } from '@/components/QuestionReadonly';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +10,8 @@ import { ApiError, api } from '@/services/api';
 import type { Quiz } from '@/types/quiz';
 
 export default function InviteQuizPage() {
+  const t = useTranslations('invite');
+  const tc = useTranslations('common');
   const params = useParams<{ token: string }>();
   const token = params.token;
   const { user } = useAuth();
@@ -33,7 +36,7 @@ export default function InviteQuizPage() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {
-          setError(err instanceof Error ? err.message : 'Failed to load quiz');
+          setError(err instanceof Error ? err.message : t('loadFailed'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -44,7 +47,7 @@ export default function InviteQuizPage() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, t]);
 
   return (
     <div>
@@ -52,15 +55,13 @@ export default function InviteQuizPage() {
         href="/quizzes"
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back to quizzes
+        {t('back')}
       </Link>
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading invite…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{t('loading')}</p>}
 
       {!loading && notFound && (
-        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-          Invite link is invalid or was revoked.
-        </div>
+        <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">{t('notFound')}</div>
       )}
 
       {!loading && error && (
@@ -70,7 +71,7 @@ export default function InviteQuizPage() {
       {!loading && quiz && (
         <div className="mt-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
-            Shared quiz
+            {t('eyebrow')}
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             {quiz.title}
@@ -81,8 +82,8 @@ export default function InviteQuizPage() {
             </p>
           )}
           <p className="mt-2 text-sm text-white/70">
-            {quiz.questions.length} question{quiz.questions.length === 1 ? '' : 's'} · answers hidden
-            (invite)
+            {tc('questionCount', { count: quiz.questions.length })}
+            {t('answersHidden')}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -90,14 +91,14 @@ export default function InviteQuizPage() {
               href={`/quizzes/invite/${token}/play`}
               className="gold-btn inline-flex rounded-full px-6 py-3 text-sm font-semibold"
             >
-              Start practice
+              {t('startPractice')}
             </Link>
             {user && (
               <Link
                 href={`/quizzes/${quiz.id}/attempts?invite=${encodeURIComponent(token)}`}
                 className="btn-motion inline-flex rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
               >
-                My attempts
+                {t('myAttempts')}
               </Link>
             )}
           </div>

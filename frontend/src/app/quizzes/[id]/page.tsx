@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Download } from 'lucide-react';
 import { QuestionReadonly } from '@/components/QuestionReadonly';
@@ -17,6 +18,8 @@ import { ApiError, api } from '@/services/api';
 import type { Quiz } from '@/types/quiz';
 
 export default function QuizDetailPage() {
+  const t = useTranslations('detail');
+  const tc = useTranslations('common');
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite')?.trim() || undefined;
@@ -54,12 +57,12 @@ export default function QuizDetailPage() {
       if (missing) {
         setNotFound(true);
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load quiz');
+        setError(err instanceof Error ? err.message : t('loadFailed'));
       }
     } finally {
       setLoading(false);
     }
-  }, [id, inviteToken]);
+  }, [id, inviteToken, t]);
 
   useEffect(() => {
     void load();
@@ -80,7 +83,7 @@ export default function QuizDetailPage() {
     if (!inviteUrl) return;
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      setInviteMessage('Invite link copied');
+      setInviteMessage(t('inviteCopied'));
     } catch {
       setInviteMessage(inviteUrl);
     }
@@ -93,9 +96,9 @@ export default function QuizDetailPage() {
     try {
       const { inviteToken } = await api.regenerateInvite(quiz.id);
       setQuiz({ ...quiz, inviteToken });
-      setInviteMessage('New invite link generated');
+      setInviteMessage(t('inviteGenerated'));
     } catch (err) {
-      setInviteMessage(err instanceof Error ? err.message : 'Failed to regenerate link');
+      setInviteMessage(err instanceof Error ? err.message : t('regenerateFailed'));
     } finally {
       setInviteBusy(false);
     }
@@ -103,15 +106,15 @@ export default function QuizDetailPage() {
 
   async function revokeInvite() {
     if (!quiz) return;
-    if (!confirm('Revoke the current invite link? Old links will stop working.')) return;
+    if (!confirm(t('revokeConfirm'))) return;
     setInviteBusy(true);
     setInviteMessage(null);
     try {
       await api.revokeInvite(quiz.id);
       setQuiz({ ...quiz, inviteToken: null });
-      setInviteMessage('Invite link revoked');
+      setInviteMessage(t('inviteRevoked'));
     } catch (err) {
-      setInviteMessage(err instanceof Error ? err.message : 'Failed to revoke link');
+      setInviteMessage(err instanceof Error ? err.message : t('revokeFailed'));
     } finally {
       setInviteBusy(false);
     }
@@ -125,7 +128,7 @@ export default function QuizDetailPage() {
       if (kind === 'worksheet') await api.downloadWorksheetPdf(quiz.id);
       else await api.downloadAnswersPdf(quiz.id);
     } catch (err) {
-      setPdfMessage(err instanceof Error ? err.message : 'Failed to download PDF');
+      setPdfMessage(err instanceof Error ? err.message : t('pdfFailed'));
     } finally {
       pdfBusyRef.current = false;
     }
@@ -137,14 +140,14 @@ export default function QuizDetailPage() {
         href="/quizzes"
         className="text-sm font-medium text-[var(--gold-from)] transition hover:text-[var(--gold-to)]"
       >
-        ← Back to quizzes
+        {t('back')}
       </Link>
 
-      {loading && <p className="mt-6 text-sm text-white/80">Loading…</p>}
+      {loading && <p className="mt-6 text-sm text-white/80">{tc('loading')}</p>}
 
       {!loading && notFound && (
         <div className="surface-card mt-6 px-5 py-4 text-sm text-amber-800">
-          Quiz not found or you do not have access.
+          {t('notFound')}
         </div>
       )}
 
@@ -156,10 +159,10 @@ export default function QuizDetailPage() {
         <div className="mt-6">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--gold-from)]">
-              Quiz detail
+              {t('eyebrow')}
             </p>
             <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-white/85">
-              {quiz.visibility === 'PRIVATE' ? 'Private' : 'Public'}
+              {quiz.visibility === 'PRIVATE' ? tc('private') : tc('public')}
             </span>
           </div>
           <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-white sm:text-5xl">
@@ -171,8 +174,8 @@ export default function QuizDetailPage() {
             </p>
           )}
           <p className="mt-2 text-sm text-white/70">
-            {quiz.questions.length} question{quiz.questions.length === 1 ? '' : 's'}
-            {showAnswers ? ' · answers visible (owner)' : ' · answers hidden'}
+            {tc('questionCount', { count: quiz.questions.length })}
+            {showAnswers ? t('answersVisible') : t('answersHidden')}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -180,14 +183,14 @@ export default function QuizDetailPage() {
               href={playHref}
               className="gold-btn inline-flex rounded-full px-6 py-3 text-sm font-semibold"
             >
-              Start practice
+              {t('startPractice')}
             </Link>
             {isOwner && (
               <Link
                 href={`/quizzes/${quiz.id}/edit`}
                 className="btn-motion inline-flex rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
               >
-                Edit quiz
+                {t('editQuiz')}
               </Link>
             )}
             {user && (
@@ -195,7 +198,7 @@ export default function QuizDetailPage() {
                 href={`/quizzes/${quiz.id}/attempts${inviteQuery}`}
                 className="btn-motion inline-flex rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
               >
-                My attempts
+                {t('myAttempts')}
               </Link>
             )}
             {(quiz.visibility === 'PUBLIC' || isOwner) && (
@@ -206,7 +209,7 @@ export default function QuizDetailPage() {
                     className="btn-motion inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white"
                   >
                     <Download className="size-4" aria-hidden />
-                    Download
+                    {t('download')}
                     <ChevronDown className="size-4 opacity-80" aria-hidden />
                   </button>
                 </DropdownMenuTrigger>
@@ -216,14 +219,14 @@ export default function QuizDetailPage() {
                       className="cursor-pointer rounded-lg px-3 py-2.5"
                       onSelect={() => void downloadPdf('worksheet')}
                     >
-                      Download worksheet PDF
+                      {t('worksheet')}
                     </DropdownMenuItem>
                     {isOwner && (
                       <DropdownMenuItem
                         className="cursor-pointer rounded-lg px-3 py-2.5"
                         onSelect={() => void downloadPdf('answers')}
                       >
-                        Download answers PDF
+                        {t('answerKey')}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuGroup>
@@ -235,17 +238,14 @@ export default function QuizDetailPage() {
 
           {isOwner && quiz.visibility === 'PRIVATE' && (
             <div className="surface-card mt-6 space-y-3 px-5 py-4">
-              <p className="text-sm font-semibold text-[var(--ink)]">Invite link</p>
-              <p className="text-sm text-muted-foreground">
-                Guests with this link can open the quiz (without answers). Regenerate to invalidate
-                old links.
-              </p>
+              <p className="text-sm font-semibold text-[var(--ink)]">{t('inviteSection')}</p>
+              <p className="text-sm text-muted-foreground">{t('inviteHint')}</p>
               {inviteUrl ? (
                 <p className="break-all rounded-xl bg-[#efeae2] px-3 py-2 text-xs text-[var(--ink)]">
                   {inviteUrl}
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground">No active invite link.</p>
+                <p className="text-sm text-muted-foreground">{t('noInvite')}</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {inviteUrl && (
@@ -254,7 +254,7 @@ export default function QuizDetailPage() {
                     onClick={() => void copyInvite()}
                     className="rounded-full bg-[var(--teal)] px-4 py-2 text-sm font-medium text-white"
                   >
-                    Copy link
+                    {t('copyInvite')}
                   </button>
                 )}
                 <button
@@ -263,7 +263,7 @@ export default function QuizDetailPage() {
                   onClick={() => void regenerateInvite()}
                   className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
                 >
-                  {inviteUrl ? 'Regenerate' : 'Create invite link'}
+                  {inviteUrl ? t('regenerate') : t('createInvite')}
                 </button>
                 {inviteUrl && (
                   <button
@@ -272,7 +272,7 @@ export default function QuizDetailPage() {
                     onClick={() => void revokeInvite()}
                     className="rounded-full border border-[var(--danger)] bg-white px-4 py-2 text-sm font-medium text-[var(--danger)] disabled:opacity-50"
                   >
-                    Revoke
+                    {t('revoke')}
                   </button>
                 )}
               </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { History, List, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -24,18 +25,25 @@ type Props = {
   animationDelay?: string;
 };
 
-function formatUpdated(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'Last updated recently';
+function useFormatUpdated() {
+  const t = useTranslations('quizzes');
+  const locale = useLocale();
 
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-  if (days <= 0) return 'Last updated today';
-  if (days === 1) return 'Last updated 1 day ago';
-  if (days < 30) return `Last updated ${days} days ago`;
-  return `Last updated ${date.toLocaleDateString()}`;
+  return (iso: string) => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return t('updatedRecently');
+
+    const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+    if (days <= 0) return t('updatedToday');
+    if (days < 30) return t('updatedDays', { days });
+    return t('updatedOn', { date: date.toLocaleDateString(locale) });
+  };
 }
 
 export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
+  const t = useTranslations('quizzes');
+  const tc = useTranslations('common');
+  const formatUpdated = useFormatUpdated();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +51,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
   const isPublic = quiz.visibility === 'PUBLIC';
 
   async function handleDelete() {
-    if (!confirm(`Delete quiz "${quiz.title}"?`)) return;
+    if (!confirm(t('deleteConfirm', { title: quiz.title }))) return;
 
     setDeleting(true);
     setError(null);
@@ -51,7 +59,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
       await api.deleteQuiz(quiz.id);
       onDeleted(quiz.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete');
+      setError(err instanceof Error ? err.message : t('deleteFailed'));
       setDeleting(false);
     }
   }
@@ -76,7 +84,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
                     : 'bg-[#e8e2d8] text-[#4a4a4a] hover:bg-[#e8e2d8]',
                 )}
               >
-                {isPublic ? 'Public' : 'Private'}
+                {isPublic ? tc('public') : tc('private')}
               </Badge>
             </div>
 
@@ -89,7 +97,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.8125rem] text-[#757575]">
               <span className="inline-flex items-center gap-1.5">
                 <List className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
-                {quiz.questionsCount} Question{quiz.questionsCount === 1 ? '' : 's'}
+                {tc('questionCount', { count: quiz.questionsCount })}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <History className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
@@ -102,10 +110,10 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
 
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <Button asChild variant="tealOutline" size="sm" className="btn-motion">
-              <Link href={`/quizzes/${quiz.id}`}>Open</Link>
+              <Link href={`/quizzes/${quiz.id}`}>{tc('open')}</Link>
             </Button>
             <Button asChild variant="gold" size="sm">
-              <Link href={`/quizzes/${quiz.id}/play`}>Practice</Link>
+              <Link href={`/quizzes/${quiz.id}/play`}>{t('practice')}</Link>
             </Button>
             {canManage && (
               <DropdownMenu>
@@ -115,7 +123,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
                     variant="outline"
                     size="icon-sm"
                     className="btn-motion rounded-full bg-white"
-                    aria-label="More actions"
+                    aria-label={tc('moreActions')}
                     disabled={deleting}
                   >
                     <MoreHorizontal />
@@ -124,7 +132,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
                 <DropdownMenuContent align="end" className="min-w-36 rounded-xl p-1.5">
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2">
-                      <Link href={`/quizzes/${quiz.id}/edit`}>Edit</Link>
+                      <Link href={`/quizzes/${quiz.id}/edit`}>{tc('edit')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
@@ -132,7 +140,7 @@ export function QuizListItemCard({ quiz, onDeleted, animationDelay }: Props) {
                       disabled={deleting}
                       onSelect={() => void handleDelete()}
                     >
-                      {deleting ? 'Deleting…' : 'Delete'}
+                      {deleting ? tc('deleting') : tc('delete')}
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
