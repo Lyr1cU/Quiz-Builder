@@ -9,7 +9,9 @@
     "logOut": "Log out",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "language": "Language"
+    "language": "Language",
+    "langEn": "English",
+    "langUk": "Ukrainian"
   },
   "common": {
     "loading": "Loading…",

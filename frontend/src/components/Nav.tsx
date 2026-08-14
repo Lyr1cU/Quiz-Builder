@@ -200,8 +200,9 @@ export function Nav() {
   return (
     <header
       className={cn(
-        'relative z-50 shrink-0 border-b border-white/10 bg-[var(--navy)]/90 shadow-sm backdrop-blur-md transition-[border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-        menuOpen && 'max-md:rounded-b-[1.75rem] max-md:border-b-0 max-md:shadow-lg',
+        'relative z-50 shrink-0 border-b border-white/10 bg-[var(--navy)] shadow-sm transition-[border-radius,box-shadow,background] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:bg-[var(--navy)]/90 md:backdrop-blur-md',
+        menuOpen &&
+          'mobile-nav-open max-md:rounded-b-[1.75rem] max-md:border-b-0 max-md:shadow-lg',
       )}
     >
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">

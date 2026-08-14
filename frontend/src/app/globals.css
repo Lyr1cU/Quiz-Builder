@@ -340,17 +340,13 @@
   transform: translateY(-6px) rotate(-45deg);
 }
 
-/* Mobile nav sheet — Variant B */
+/* Mobile nav sheet — smooth but cheap (opacity/transform only; opaque gradient) */
 .mobile-nav-sheet {
   display: grid;
   grid-template-rows: 0fr;
-  background: linear-gradient(
-    180deg,
-    rgba(16, 19, 28, 0.2) 0%,
-    #1a2430 45%,
-    #1e2a38 100%
-  );
-  transition: grid-template-rows 0.44s cubic-bezier(0.22, 1, 0.36, 1);
+  /* Paint lives on the header so the gradient starts in the top bar with no seam */
+  background: transparent;
+  transition: grid-template-rows 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .mobile-nav-sheet[data-open='true'] {
@@ -363,15 +359,15 @@
   min-height: 0;
   overflow: hidden;
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translate3d(0, -8px, 0);
   transition:
-    opacity 0.3s ease,
-    transform 0.44s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.24s ease,
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-sheet__inner {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -389,32 +385,31 @@
   font-size: 0.875rem;
   font-weight: 500;
   opacity: 0;
-  transform: translateY(10px);
+  transform: translate3d(0, 8px, 0);
   transition:
     background-color 0.2s ease,
     color 0.2s ease,
-    box-shadow 0.25s ease,
-    transform 0.2s ease;
+    box-shadow 0.2s ease;
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-pill {
-  animation: mobile-nav-item-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: mobile-nav-item-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-pill:nth-child(1) {
-  animation-delay: 0.06s;
+  animation-delay: 0.04s;
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-pill:nth-child(2) {
-  animation-delay: 0.11s;
+  animation-delay: 0.08s;
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-pill:nth-child(3) {
-  animation-delay: 0.16s;
+  animation-delay: 0.12s;
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-pill:nth-child(4) {
-  animation-delay: 0.21s;
+  animation-delay: 0.16s;
 }
 
 .mobile-nav-pill--ghost {
@@ -427,34 +422,35 @@
 }
 
 .mobile-nav-pill--active {
-  box-shadow: 0 10px 28px rgba(184, 149, 74, 0.38);
+  /* Smaller shadow than before — soft glow without a huge blur radius */
+  box-shadow: 0 6px 14px rgba(184, 149, 74, 0.28);
 }
 
 .mobile-nav-pill__arrow {
   opacity: 0;
-  transform: translateX(-6px);
+  transform: translate3d(-4px, 0, 0);
   transition:
-    opacity 0.28s ease 0.08s,
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.08s;
+    opacity 0.22s ease 0.06s,
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1) 0.06s;
 }
 
 .mobile-nav-pill--active .mobile-nav-pill__arrow {
   opacity: 1;
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
 }
 
 .mobile-nav-footer {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translate3d(0, 6px, 0);
   transition:
-    opacity 0.32s ease,
-    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.24s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .mobile-nav-sheet[data-open='true'] .mobile-nav-footer {
   opacity: 1;
-  transform: translateY(0);
-  transition-delay: 0.14s;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 0.1s;
 }
 
 .mobile-nav-user-chip {
@@ -499,11 +495,41 @@
 @keyframes mobile-nav-item-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Keep page paint cheap on phones; menu anims use compositing-friendly props only. */
+@media (max-width: 767px) {
+  .page-shell {
+    background-attachment: scroll;
+  }
+
+  /* One continuous gradient across bar + sheet — no hard header/menu split */
+  header.mobile-nav-open {
+    background: linear-gradient(
+      180deg,
+      #10131c 0%,
+      #141c28 22%,
+      #1a2430 55%,
+      #243447 100%
+    );
+  }
+
+  .gold-btn,
+  .btn-motion {
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .gold-btn:hover:not(:disabled),
+  .btn-motion:hover:not(:disabled) {
+    filter: none;
   }
 }
 
@@ -530,6 +556,13 @@
   .surface-card-interactive:hover,
   .gold-btn:hover:not(:disabled),
   .btn-motion:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .mobile-nav-sheet[data-open='true'] .mobile-nav-pill,
+  .mobile-nav-sheet[data-open='true'] .mobile-nav-footer,
+  .mobile-nav-sheet[data-open='true'] .mobile-nav-sheet__inner {
+    opacity: 1;
     transform: none;
   }
 }

@@ -9,7 +9,9 @@
     "logOut": "Вийти",
     "openMenu": "Відкрити меню",
     "closeMenu": "Закрити меню",
-    "language": "Мова"
+    "language": "Мова",
+    "langEn": "Англійська",
+    "langUk": "Українська"
   },
   "common": {
     "loading": "Завантаження…",

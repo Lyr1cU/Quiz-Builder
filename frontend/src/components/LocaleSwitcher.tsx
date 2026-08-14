@@ -7,9 +7,10 @@ import { setLocale } from '@/i18n/setLocale';
 import { locales, type Locale } from '@/i18n/config';
 import { cn } from '@/lib/utils';
 
+// Display UA (not UK) — UK is widely read as United Kingdom.
 const LOCALE_LABELS: Record<Locale, string> = {
   en: 'EN',
-  uk: 'UK',
+  uk: 'UA',
 };
 
 export function LocaleSwitcher({ className }: { className?: string }) {
@@ -54,7 +55,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
       role="group"
       aria-label={t('language')}
     >
-      <div className="relative inline-flex rounded-full border border-white/15 bg-white/10 p-0.5 backdrop-blur-md">
+      <div className="relative inline-flex rounded-full border border-white/15 bg-white/10 p-0.5 md:backdrop-blur-md">
         <div className="relative flex">
           {locales.map((item) => (
             <span
@@ -101,6 +102,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
               type="button"
               onClick={() => void switchTo(item)}
               aria-pressed={displayLocale === item}
+              aria-label={item === 'en' ? t('langEn') : t('langUk')}
               className="min-w-[2.75rem] flex-1 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold text-transparent"
             >
               {LOCALE_LABELS[item]}
